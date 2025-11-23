@@ -75,6 +75,7 @@
         <th>강화 해킹 툴 사용 시 성공 확률</th>
         <th>강화 해킹 툴 사용 시 실패 확률</th>
         <th>파괴 확률</th>
+        <th>단계별 강화 비용</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -152,6 +153,7 @@
       <td>${(extraSuccess[i]*100).toFixed(1)}%</td>
       <td>${failExtra.toFixed(1)}%</td>
       <td>${(breakRates[i]*100).toFixed(1)}%</td>
+      <td>${formatCost(costsBit[i])}</td>
     `;
     tbody.appendChild(tr);
   }
