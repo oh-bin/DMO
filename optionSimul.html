@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>바이탈 브레스 디지바이스 V 옵션 시뮬레이터</title>
+  <title>바이탈 브레스 디지바이스 V 옵션 계산기</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,31 +13,36 @@
 
     h1 {
       color: #7ddcff;
-      margin-bottom: 10px;
     }
 
     button {
-      padding: 12px 20px;
-      font-size: 16px;
-      background-color: #2563eb;
+      padding: 10px 16px;
+      font-size: 15px;
+      background: #2563eb;
       color: white;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      margin-bottom: 20px;
+      margin: 5px 0;
+    }
+
+    select, input {
+      padding: 6px;
+      border-radius: 6px;
+      border: none;
+      margin: 4px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       background: #0f172a;
-      border-radius: 12px;
-      overflow: hidden;
+      margin-top: 15px;
     }
 
     th, td {
       border: 1px solid #1e293b;
-      padding: 10px;
+      padding: 8px;
       text-align: center;
     }
 
@@ -45,114 +50,198 @@
       background: #1e293b;
     }
 
-    .note {
+    .lock {
+      color: #facc15;
+      font-weight: bold;
+    }
+
+    .info {
       margin-top: 20px;
-      font-size: 14px;
       color: #94a3b8;
-      line-height: 1.6;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
 
-<h1>바이탈 브레스 디지바이스 V 옵션 뽑기</h1>
+<h1>바이탈 브레스 디지바이스 V 옵션 계산기</h1>
+
 <button onclick="rollOptions()">옵션 뽑기</button>
 
 <table>
   <thead>
     <tr>
       <th>옵션 칸</th>
-      <th>결과</th>
-      <th>확률</th>
+      <th>현재 옵션</th>
+      <th>잠금</th>
     </tr>
   </thead>
-  <tbody id="resultTable"></tbody>
+  <tbody id="optionTable"></tbody>
 </table>
 
-<div class="note">
-  ✅ 모든 옵션은 동일 확률 (4.34%)<br>
-  ✅ 한 번 나온 옵션은 다시 등장하지 않음<br>
-  ✅ 옵션별 최대 등장 제한 적용
+<hr style="margin:20px 0;">
+
+<h3>원하는 옵션 선택</h3>
+<select id="targetOption"></select>
+
+<div style="margin-top:10px;">
+  <button onclick="calculate()">확률 & 스톤 계산</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>항목</th>
+      <th>값</th>
+    </tr>
+  </thead>
+  <tbody id="calcResult"></tbody>
+</table>
+
+<div class="info">
+  * 모든 옵션은 동일한 확률 (4.34%)<br>
+  * 동일 옵션은 제한 개수만큼만 등장 가능<br>
+  * 최대 2개까지 잠금 가능<br>
+  * 옵션 변경 스톤: 0개 잠금=1개 / 1개 잠금=3개 / 2개 잠금=5개
 </div>
 
 <script>
-const BASE_PROB = "4.34%";
+const BASE_RATE = 4.34;
 
-// 옵션 및 최대 허용 개수
 const OPTION_LIMITS = {
-  "공격력": 2,
-  "방어력": 2,
-  "최대체력": 2,
-  "디지소울": 2,
-  "스킬피해": 2,
-  "크리티컬": 2,
-  "치명피해": 2,
-  "회피": 2,
-  "적중도": 2,
-  "방어력%": 1,
-  "최대 DS 증가%": 1,
-  "최대 HP 증가%": 1,
-  "스킬 데미지 증가%": 1,
-  "최종 데미지 증가%": 1
+  "공격력": 2, "방어력": 2, "최대체력": 2, "디지소울": 2,
+  "스킬피해": 2, "크리티컬": 2, "치명피해": 2, "회피": 2, "적중도": 2,
+  "방어력%": 1, "최대 DS 증가%": 1, "최대 HP 증가%": 1,
+  "스킬 데미지 증가%": 1, "최종 데미지 증가%": 1
 };
 
-// 옵션 리스트 생성
-function buildOptionPool() {
-  let pool = [];
+const OPTION_LIST = Object.keys(OPTION_LIMITS);
+let currentOptions = ["", "", "", "", ""];
+
+function initTargetSelect() {
+  const sel = document.getElementById("targetOption");
+  sel.innerHTML = "";
+  OPTION_LIST.forEach(opt => {
+    const o = document.createElement("option");
+    o.value = opt;
+    o.innerText = opt;
+    sel.appendChild(o);
+  });
+}
+
+function buildPool(exclude = []) {
+  const pool = [];
+  const countMap = {};
+  exclude.forEach(e => {
+    countMap[e] = (countMap[e] || 0) + 1;
+  });
+
   for (const [name, limit] of Object.entries(OPTION_LIMITS)) {
-    for (let i = 0; i < limit; i++) {
+    const used = countMap[name] || 0;
+    const remain = limit - used;
+    for (let i = 0; i < remain; i++) {
       pool.push(name);
     }
   }
   return pool;
 }
 
-// 셔플 함수
-function shuffle(array) {
-  return array.sort(() => Math.random() - 0.5);
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
 }
 
-// 옵션 뽑기
 function rollOptions() {
-  const table = document.getElementById("resultTable");
-  table.innerHTML = "";
+  const tbody = document.getElementById("optionTable");
+  tbody.innerHTML = "";
 
-  let pool = buildOptionPool();
-  let selected = [];
+  let pool = buildPool();
+  pool = shuffle(pool);
 
   for (let i = 0; i < 5; i++) {
-    if (pool.length === 0) break;
-
-    pool = shuffle(pool);
-    const pick = pool.shift();
-    selected.push(pick);
+    if (!pool.length) break;
+    currentOptions[i] = pool.shift();
   }
 
-  // 표 출력
+  renderOptionTable();
+}
+
+function renderOptionTable() {
+  const tbody = document.getElementById("optionTable");
+  tbody.innerHTML = "";
+
   for (let i = 0; i < 5; i++) {
     const tr = document.createElement("tr");
 
-    const tdIndex = document.createElement("td");
-    tdIndex.innerText = `${i + 1}번 옵션`;
+    const tdIdx = document.createElement("td");
+    tdIdx.innerText = `${i + 1}번`;
 
-    const tdOption = document.createElement("td");
-    const tdProb = document.createElement("td");
+    const tdOpt = document.createElement("td");
+    tdOpt.innerText = currentOptions[i] || "-";
 
-    if (selected[i]) {
-      tdOption.innerText = selected[i];
-      tdProb.innerText = BASE_PROB;
-    } else {
-      tdOption.innerText = "-";
-      tdProb.innerText = "-";
-    }
+    const tdLock = document.createElement("td");
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.dataset.idx = i;
 
-    tr.appendChild(tdIndex);
-    tr.appendChild(tdOption);
-    tr.appendChild(tdProb);
+    checkbox.onchange = enforceMaxLock;
+    tdLock.appendChild(checkbox);
 
-    table.appendChild(tr);
+    tr.appendChild(tdIdx);
+    tr.appendChild(tdOpt);
+    tr.appendChild(tdLock);
+
+    tbody.appendChild(tr);
   }
 }
+
+function enforceMaxLock() {
+  const checks = document.querySelectorAll("#optionTable input[type=checkbox]");
+  let checkedCount = 0;
+  checks.forEach(c => { if (c.checked) checkedCount++; });
+
+  if (checkedCount > 2) {
+    this.checked = false;
+    alert("최대 2개까지만 잠글 수 있습니다.");
+  }
+}
+
+function calculate() {
+  const target = document.getElementById("targetOption").value;
+  const checks = document.querySelectorAll("#optionTable input[type=checkbox]");
+
+  let locked = [];
+  let lockCount = 0;
+
+  checks.forEach((c, idx) => {
+    if (c.checked && currentOptions[idx]) {
+      locked.push(currentOptions[idx]);
+      lockCount++;
+    }
+  });
+
+  const pool = buildPool(locked);
+  const total = pool.length;
+  const targetCount = pool.filter(x => x === target).length;
+
+  const prob = total === 0 ? 0 : (targetCount / total * 100);
+
+  let stoneCost = 1;
+  if (lockCount === 1) stoneCost = 3;
+  if (lockCount === 2) stoneCost = 5;
+
+  const result = document.getElementById("calcResult");
+  result.innerHTML = `
+    <tr><td>잠금 개수</td><td>${lockCount}개</td></tr>
+    <tr><td>원하는 옵션</td><td>${target}</td></tr>
+    <tr><td>남은 선택지 수</td><td>${total}개</td></tr>
+    <tr><td>해당 옵션 개수</td><td>${targetCount}개</td></tr>
+    <tr><td>기대 확률</td><td>${prob.toFixed(2)}%</td></tr>
+    <tr><td>옵션 변경 스톤 소모</td><td>${stoneCost}개</td></tr>
+  `;
+}
+
+initTargetSelect();
+rollOptions();
 </script>
 
 </body>
