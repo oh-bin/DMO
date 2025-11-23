@@ -20,6 +20,7 @@ th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
 .results p { margin:6px 0; }
 select { padding:6px; border-radius:6px; background:#0b1220; color:#e6f0ff; border:1px solid rgba(255,255,255,0.06); margin-bottom:4px; width:180px; }
 .flex-col { display:flex; flex-direction:column; gap:4px; }
+img.equip-img { max-width:120px; margin-bottom:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.1); }
 </style>
 </head>
 <body>
@@ -31,6 +32,13 @@ select { padding:6px; border-radius:6px; background:#0b1220; color:#e6f0ff; bord
   <div class="col">
     <label for="equipSelect">장비 선택:</label>
     <select id="equipSelect"></select>
+  </div>
+</div>
+
+<!-- 장비 이미지 -->
+<div class="row">
+  <div class="col">
+    <img id="equipImg" class="equip-img" src="" alt="장비 이미지">
   </div>
 </div>
 
@@ -56,7 +64,7 @@ select { padding:6px; border-radius:6px; background:#0b1220; color:#e6f0ff; bord
 
 <!-- 하단: 기대값 계산 -->
 <h3>기대값 계산용 슬롯</h3>
-<p>잠금과 원하는 옵션을 선택하고 계산하세요 (순서 상관 없음)</p>
+<p>잠금과 원하는 옵션을 선택하고 계산하세요 (순서 상관 없음, 최대 2개 잠금)</p>
 <table>
   <thead>
     <tr><th>슬롯</th><th>잠금</th><th>원하는 옵션</th></tr>
@@ -113,6 +121,7 @@ function renderEquipSelect(){
     sel.appendChild(opt);
   });
   sel.value=currentEquip;
+  updateEquipImage();
   sel.onchange=()=>{
     currentEquip = sel.value;
     OPTION_NAMES = Object.keys(EQUIP_OPTIONS[currentEquip]);
@@ -120,7 +129,15 @@ function renderEquipSelect(){
     renderExpectUI();
     totalStoneUsed=0;
     updateStoneBox();
+    updateEquipImage();
   };
+}
+
+// 장비 이미지 업데이트
+function updateEquipImage(){
+  const img = document.getElementById("equipImg");
+  img.src = `IMG/${currentEquip}.png`;
+  img.alt = currentEquip;
 }
 
 // 상단 슬롯 렌더
@@ -202,7 +219,18 @@ function renderExpectUI(){
 
     const td2=document.createElement("td");
     const chk=document.createElement("input"); chk.type="checkbox";
-    chk.onchange=()=>{ expectSlots[i].locked=chk.checked; };
+    chk.onchange=()=>{
+      const lockCount = expectSlots.filter(s=>s.locked).length;
+      if(!chk.checked && expectSlots[i].locked){ // 잠금 해제는 항상 가능
+        expectSlots[i].locked = false;
+      } else if(chk.checked && lockCount>=2){ 
+        alert("최대 2개까지만 잠금할 수 있습니다."); 
+        chk.checked = false; 
+        return;
+      } else {
+        expectSlots[i].locked = chk.checked;
+      }
+    };
     td2.appendChild(chk);
 
     const td3=document.createElement("td");
