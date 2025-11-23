@@ -6,9 +6,9 @@
   <style>
     body { font-family: sans-serif; background:#f7f7f7; padding:20px; }
     .container { max-width:900px; margin:auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
-    .grid { display:grid; grid-template-columns: repeat(5, 1fr); gap:16px; margin-bottom:20px; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:16px; margin-bottom:20px; }
     .item-card { border:1px solid #ddd; border-radius:12px; padding:10px; text-align:center; }
-    .item-card img { width:100px; height:100px; object-fit:contain; border:1px dashed #ccc; border-radius:8px; }
+    .item-card img { width:150px; height:150px; object-fit:contain; border:1px dashed #ccc; border-radius:8px; }
     table { width:100%; border-collapse:collapse; margin-top:20px; }
     th, td { border:1px solid #ddd; padding:8px; text-align:center; }
     th { background:#f0f0f0; }
@@ -75,21 +75,24 @@
 
     // ===== 이미지 매핑 =====
     const equipImages = {
-      "머리": "images/head.png",
-      "상의": "images/top.png",
-      "하의": "images/pants.png",
-      "신발": "images/shoes.png",
-      "장갑": "images/gloves.png"
+      "머리": "IMG/head.png",
+      "상의": "IMG/top.png",
+      "하의": "IMG/pants.png",
+      "신발": "IMG/shoes.png",
+      "장갑": "IMG/gloves.png"
     };
 
     const equipSelect = document.getElementById("equipSelect");
     const equipImg = document.getElementById("equip-img");
 
-    // 장비 선택 시 이미지 자동 변경
+    // 부위 선택 시 자동 업데이트
     equipSelect.addEventListener("change", () => {
-      equipImg.src = equipImages[equipSelect.value] || "";
+      const selected = equipSelect.value;
+      equipImg.src = equipImages[selected] || "";
     });
-    equipImg.src = equipImages[equipSelect.value]; // 초기값
+
+    // 초기 이미지 설정
+    equipImg.src = equipImages[equipSelect.value];
 
     // ===== 시작/목표 단계 & 비용 테이블 생성 =====
     const startSelect = document.getElementById('startLvl');
