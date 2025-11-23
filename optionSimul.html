@@ -8,7 +8,7 @@ body { font-family: Arial, Helvetica, sans-serif; background:#071126; color:#e6f
 .container { max-width:1000px; margin:0 auto; background:#0f1f33; padding:18px; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,0.6); }
 h1 { color:#7ddcff; margin-bottom:6px; }
 h2 { margin-top:24px; color:#7ddcff; }
-.top-images { display:flex; gap:10px; margin-bottom:12px; }
+.top-images { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
 img.example { width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.06); }
 
 .row { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
@@ -30,7 +30,8 @@ th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
 .results { margin-top:14px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; }
 .results p { margin:6px 0; }
 
-#desiredContainer select, #desiredContainer input[type=checkbox] { display:block; margin-bottom:6px; }
+#desiredContainer div { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+#desiredContainer select { flex:1; padding:6px; border-radius:6px; background:#0b1220; color:#e6f0ff; border:1px solid rgba(255,255,255,0.06); }
 </style>
 </head>
 <body>
@@ -58,8 +59,7 @@ th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
 <hr style="margin:14px 0; border-color:rgba(255,255,255,0.04)">
 
 <h2>2. 기대값 계산 (별개)</h2>
-<p>아래에서 각 슬롯별 잠금 여부와 원하는 옵션을 선택 후 계산</p>
-
+<p>각 슬롯별 잠금 여부와 원하는 옵션을 선택 후 계산</p>
 <div id="desiredContainer"></div>
 
 <div class="controls">
@@ -72,11 +72,12 @@ th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
 
 <div class="note">
 * 각 옵션 항목별 최대 등장 허용 수가 있습니다.<br>
-* 슬롯 잠금/스톤 계산 시 0잠금=1, 1잠금=3, 2잠금=5 기준.
+* 잠금 수에 따른 1회 스톤 소모: 0잠금=1, 1잠금=3, 2잠금=5.
 </div>
 </div>
 
 <script>
+// 옵션 설정
 const OPTION_LIMITS = {
 "공격력":2,"방어력":2,"최대체력":2,"디지소울":2,
 "스킬피해":2,"크리티컬":2,"치명피해":2,"회피":2,"적중도":2,
@@ -85,16 +86,17 @@ const OPTION_LIMITS = {
 };
 const OPTION_NAMES = Object.keys(OPTION_LIMITS);
 
-let slots = [{value:"",locked:false},{value:"",locked:false},{value:"",locked:false},{value:"",locked:false},{value:"",locked:false}];
+// 상단 슬롯 상태
+let slots = Array(5).fill(0).map(()=>({value:"", locked:false}));
 
 function stonePerTry(lockCount){ return lockCount===0?1:(lockCount===1?3:5); }
 
+// 풀 구성
 function buildPool(excludeUsed=[]){
   const pool=[]; const used={};
   excludeUsed.forEach(v=>{ if(v) used[v]=(used[v]||0)+1; });
   OPTION_NAMES.forEach(name=>{
-    const allowed = OPTION_LIMITS[name];
-    const remaining = Math.max(allowed-(used[name]||0),0);
+    const remaining = Math.max(OPTION_LIMITS[name]-(used[name]||0),0);
     for(let i=0;i<remaining;i++) pool.push(name);
   });
   return pool;
@@ -103,91 +105,91 @@ function buildPool(excludeUsed=[]){
 function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
 
 function fillInitial(){
-  const pool = shuffle(buildPool([]));
-  for(let i=0;i<5;i++){ slots[i].value = pool.length?pool.shift():""; slots[i].locked=false; }
+  const pool=shuffle(buildPool([]));
+  for(let i=0;i<5;i++){ slots[i].value=pool.length?pool.shift():""; slots[i].locked=false; }
   renderSlots();
 }
 
 function renderSlots(){
-  const tbody = document.getElementById("slotsTbody");
+  const tbody=document.getElementById("slotsTbody");
   tbody.innerHTML="";
-  for(let i=0;i<5;i++){
+  slots.forEach((s,i)=>{
     const tr=document.createElement("tr");
     const tdIndex=document.createElement("td"); tdIndex.innerText=`${i+1}번`;
-    const tdValue=document.createElement("td"); 
-    tdValue.innerText = slots[i].value || "-";
-    tdValue.style.fontWeight = slots[i].locked?"700":"400";
-    tdValue.style.color = slots[i].locked?"#ffd7d7":"";
-
+    const tdValue=document.createElement("td"); tdValue.innerText=s.value||"-";
+    tdValue.style.fontWeight=s.locked?"700":"400";
+    tdValue.style.color=s.locked?"#ffd7d7":"";
     const tdLock=document.createElement("td");
     const btn=document.createElement("button");
-    btn.className="lock-btn"; btn.innerText=slots[i].locked?"잠금 해제":"잠금";
-    if(slots[i].locked) btn.classList.add("locked");
-    btn.onclick = ()=>{
-      const lockCount = slots.filter(s=>s.locked).length;
-      if(!slots[i].locked && lockCount>=2){ alert("최대 2개까지만 잠글 수 있습니다."); return; }
-      slots[i].locked = !slots[i].locked; renderSlots();
+    btn.className="lock-btn"; btn.innerText=s.locked?"잠금 해제":"잠금";
+    if(s.locked) btn.classList.add("locked");
+    btn.onclick=()=>{
+      const lockCount=slots.filter(x=>x.locked).length;
+      if(!s.locked && lockCount>=2){ alert("최대 2개까지만 잠글 수 있습니다."); return; }
+      s.locked=!s.locked; renderSlots();
     };
     tdLock.appendChild(btn);
-    tr.appendChild(tdIndex); tr.appendChild(tdValue); tr.appendChild(tdLock);
-    tbody.appendChild(tr);
-  }
+    tr.append(tdIndex,tdValue,tdLock); tbody.appendChild(tr);
+  });
 }
 
 function rerollUnlocked(){
-  const lockedValues = slots.filter(s=>s.locked).map(s=>s.value).filter(Boolean);
-  let pool = shuffle(buildPool(lockedValues));
-  for(let i=0;i<5;i++){ if(slots[i].locked) continue; slots[i].value = pool.length?pool.shift():""; }
+  const lockedValues=slots.filter(s=>s.locked).map(s=>s.value).filter(Boolean);
+  const pool=shuffle(buildPool(lockedValues));
+  let idx=0;
+  slots.forEach(s=>{
+    if(!s.locked) s.value=idx<pool.length?pool[idx++]:"";
+  });
   renderSlots();
 }
 
-// 기대값 계산 UI: 각 슬롯별 잠금 체크 + 옵션 선택
+// 기대값 UI
 function renderDesiredUI(){
-  const cont=document.getElementById("desiredContainer"); cont.innerHTML="";
+  const cont=document.getElementById("desiredContainer");
+  cont.innerHTML="";
   for(let i=0;i<5;i++){
     const div=document.createElement("div");
-    div.style.display="flex"; div.style.alignItems="center"; div.style.gap="6px";
-
     const chk=document.createElement("input"); chk.type="checkbox"; chk.dataset.slot=i;
     const sel=document.createElement("select"); sel.dataset.slot=i;
-    sel.style.padding="6px"; sel.style.borderRadius="6px"; sel.style.background="#0b1220";
-    sel.style.color="#e6f0ff"; sel.style.border="1px solid rgba(255,255,255,0.06)";
     const emptyOpt=document.createElement("option"); emptyOpt.value=""; emptyOpt.innerText=`원하는 옵션 ${i+1}`; sel.appendChild(emptyOpt);
     OPTION_NAMES.forEach(name=>{ const o=document.createElement("option"); o.value=name; o.innerText=name; sel.appendChild(o); });
-
-    div.appendChild(chk); div.appendChild(sel);
-    cont.appendChild(div);
+    div.append(chk,sel); cont.appendChild(div);
   }
 }
 
+// 기대값 계산
 function computeExpectation(){
-  const selects = document.querySelectorAll("#desiredContainer select");
-  const checkboxes = document.querySelectorAll("#desiredContainer input[type=checkbox]");
-
-  const desired = Array.from(selects).map(s=>s.value);
-  const lockedSlots = Array.from(checkboxes).map(c=>c.checked);
-  const lockCount = lockedSlots.filter(v=>v).length;
+  const selects=document.querySelectorAll("#desiredContainer select");
+  const checkboxes=document.querySelectorAll("#desiredContainer input[type=checkbox]");
+  const desired=Array.from(selects).map(s=>s.value);
+  const lockedSlots=Array.from(checkboxes).map(c=>c.checked);
+  const lockCount=lockedSlots.filter(v=>v).length;
 
   if(desired.some(v=>v==="")){ alert("모든 슬롯에 원하는 옵션을 선택하세요."); return; }
 
   // 풀 구성
-  const counts={};
-  for(const name of OPTION_NAMES){ counts[name]=OPTION_LIMITS[name]; }
+  const tempCounts={}; OPTION_NAMES.forEach(n=>tempCounts[n]=OPTION_LIMITS[n]);
 
-  // 순서 상관없이 계산
-  let numerator=1;
-  const tempCounts={...counts};
-  for(const opt of desired){
-    if(!tempCounts[opt] || tempCounts[opt]<=0){ numerator=0; break; }
-    numerator *= tempCounts[opt]; tempCounts[opt]--;
-  }
-  const denominator=1*2*3*4*5; // 5개 순서 상관 없는 전체 경우 수
+  // 차감 (잠금 슬롯 고려)
+  lockedSlots.forEach((locked,i)=>{ if(locked) tempCounts[desired[i]]--; });
+
+  // 단순 조합 기반 기대값 계산 (순서 상관 없이)
+  let numerator=1, totalAvailable=0;
+  desired.forEach((opt,i)=>{
+    const avail=tempCounts[opt];
+    if(avail<=0) numerator=0;
+    numerator *= avail>0?avail:0;
+    tempCounts[opt]--;
+  });
+
+  // 전체 가능한 경우 수 = product of remaining counts (순서 상관 없음을 근사)
+  const denominator=1*2*3*4*5;
   const p=numerator/denominator;
-  const expectedTrials=1/p;
-  const expectedStones=expectedTrials*stonePerTry(lockCount);
+  const expectedTrials=p===0?Infinity:1/p;
+  const expectedStones=p===0?Infinity:expectedTrials*stonePerTry(lockCount);
 
   function fmtPct(x){ return (x*100).toFixed(6)+"%"; }
-  function fmtNum(x){ return x>=1e6?Math.round(x).toLocaleString():Number(x.toFixed(2)).toLocaleString(); }
+  function fmtNum(x){ if(!isFinite(x)) return "무한"; return x>=1e6?Math.round(x).toLocaleString():Number(x.toFixed(2)).toLocaleString(); }
 
   document.getElementById("resultBox").innerHTML=`
     <p><strong>잠금 수:</strong> ${lockCount}개</p>
@@ -195,12 +197,12 @@ function computeExpectation(){
     <p><strong>기대 시도 횟수:</strong> ${fmtNum(expectedTrials)}</p>
     <p><strong>기대 옵션 변경 스톤:</strong> ${fmtNum(expectedStones)}개</p>
     <hr>
-    <p style="color:#cfe3ff"><em>참고:</em> 슬롯 리롤과 별개로 순서 상관 없이 원하는 옵션이 모두 나오면 성공으로 계산합니다.</p>
+    <p style="color:#cfe3ff"><em>참고:</em> 순서 상관 없이 슬롯별 옵션 최대 등장 수를 고려하여 계산합니다.</p>
   `;
 }
 
 window.rerollUnlocked=rerollUnlocked;
-window.resetAll=resetAll;
+window.resetAll=fillInitial;
 window.computeExpectation=computeExpectation;
 
 function init(){ fillInitial(); renderDesiredUI(); }
