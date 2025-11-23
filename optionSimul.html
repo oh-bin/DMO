@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>바이탈 브레스 디지바이스 V 옵션 시뮬레이터</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b1020;
+      color: white;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #7ddcff;
+      margin-bottom: 10px;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #0f172a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border: 1px solid #1e293b;
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background: #1e293b;
+    }
+
+    .note {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+<h1>바이탈 브레스 디지바이스 V 옵션 뽑기</h1>
+<button onclick="rollOptions()">옵션 뽑기</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>옵션 칸</th>
+      <th>결과</th>
+      <th>확률</th>
+    </tr>
+  </thead>
+  <tbody id="resultTable"></tbody>
+</table>
+
+<div class="note">
+  ✅ 모든 옵션은 동일 확률 (4.34%)<br>
+  ✅ 한 번 나온 옵션은 다시 등장하지 않음<br>
+  ✅ 옵션별 최대 등장 제한 적용
+</div>
+
+<script>
+const BASE_PROB = "4.34%";
+
+// 옵션 및 최대 허용 개수
+const OPTION_LIMITS = {
+  "공격력": 2,
+  "방어력": 2,
+  "최대체력": 2,
+  "디지소울": 2,
+  "스킬피해": 2,
+  "크리티컬": 2,
+  "치명피해": 2,
+  "회피": 2,
+  "적중도": 2,
+  "방어력%": 1,
+  "최대 DS 증가%": 1,
+  "최대 HP 증가%": 1,
+  "스킬 데미지 증가%": 1,
+  "최종 데미지 증가%": 1
+};
+
+// 옵션 리스트 생성
+function buildOptionPool() {
+  let pool = [];
+  for (const [name, limit] of Object.entries(OPTION_LIMITS)) {
+    for (let i = 0; i < limit; i++) {
+      pool.push(name);
+    }
+  }
+  return pool;
+}
+
+// 셔플 함수
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+// 옵션 뽑기
+function rollOptions() {
+  const table = document.getElementById("resultTable");
+  table.innerHTML = "";
+
+  let pool = buildOptionPool();
+  let selected = [];
+
+  for (let i = 0; i < 5; i++) {
+    if (pool.length === 0) break;
+
+    pool = shuffle(pool);
+    const pick = pool.shift();
+    selected.push(pick);
+  }
+
+  // 표 출력
+  for (let i = 0; i < 5; i++) {
+    const tr = document.createElement("tr");
+
+    const tdIndex = document.createElement("td");
+    tdIndex.innerText = `${i + 1}번 옵션`;
+
+    const tdOption = document.createElement("td");
+    const tdProb = document.createElement("td");
+
+    if (selected[i]) {
+      tdOption.innerText = selected[i];
+      tdProb.innerText = BASE_PROB;
+    } else {
+      tdOption.innerText = "-";
+      tdProb.innerText = "-";
+    }
+
+    tr.appendChild(tdIndex);
+    tr.appendChild(tdOption);
+    tr.appendChild(tdProb);
+
+    table.appendChild(tr);
+  }
+}
+</script>
+
+</body>
+</html>
