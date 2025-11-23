@@ -7,6 +7,7 @@
 body { font-family: Arial, Helvetica, sans-serif; background:#071126; color:#e6f0ff; padding:20px; }
 .container { max-width:1000px; margin:0 auto; background:#0f1f33; padding:18px; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,0.6); }
 h1 { color:#7ddcff; margin-bottom:6px; }
+h2 { margin-top:24px; color:#7ddcff; }
 .top-images { display:flex; gap:10px; margin-bottom:12px; }
 img.example { width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.06); }
 
@@ -29,7 +30,7 @@ th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
 .results { margin-top:14px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; }
 .results p { margin:6px 0; }
 
-#desiredContainer select { display:block; width:200px; margin-bottom:8px; }
+#desiredContainer select, #desiredContainer input[type=checkbox] { display:block; margin-bottom:6px; }
 </style>
 </head>
 <body>
@@ -57,16 +58,7 @@ th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
 <hr style="margin:14px 0; border-color:rgba(255,255,255,0.04)">
 
 <h2>2. 기대값 계산 (별개)</h2>
-<p>아래에서 원하는 옵션 5개와 잠금 슬롯 수를 선택 후 계산</p>
-
-<div id="lockCountContainer" style="margin-bottom:8px;">
-  잠금 슬롯 수:
-  <select id="lockCountSelect">
-    <option value="0">0</option>
-    <option value="1">1</option>
-    <option value="2">2</option>
-  </select>
-</div>
+<p>아래에서 각 슬롯별 잠금 여부와 원하는 옵션을 선택 후 계산</p>
 
 <div id="desiredContainer"></div>
 
@@ -75,12 +67,12 @@ th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
 </div>
 
 <div class="results" id="resultBox">
-  <p>설명: 슬롯 잠금 수를 선택하고 원하는 옵션 5개를 입력하세요.</p>
+  <p>설명: 슬롯 잠금 여부와 원하는 옵션을 설정하세요.</p>
 </div>
 
 <div class="note">
 * 각 옵션 항목별 최대 등장 허용 수가 있습니다.<br>
-* 슬롯 잠금 수에 따른 1회 스톤 소모량: 0잠금=1, 1잠금=3, 2잠금=5.
+* 슬롯 잠금/스톤 계산 시 0잠금=1, 1잠금=3, 2잠금=5 기준.
 </div>
 </div>
 
@@ -149,45 +141,50 @@ function rerollUnlocked(){
   renderSlots();
 }
 
-// 기대값 계산 UI
+// 기대값 계산 UI: 각 슬롯별 잠금 체크 + 옵션 선택
 function renderDesiredUI(){
   const cont=document.getElementById("desiredContainer"); cont.innerHTML="";
   for(let i=0;i<5;i++){
-    const sel=document.createElement("select");
-    sel.dataset.slot=i; sel.style.padding="8px"; sel.style.borderRadius="6px";
-    sel.style.background="#0b1220"; sel.style.color="#e6f0ff"; sel.style.border="1px solid rgba(255,255,255,0.06)";
-    const empty=document.createElement("option"); empty.value=""; empty.innerText=`원하는 옵션 ${i+1}`; sel.appendChild(empty);
+    const div=document.createElement("div");
+    div.style.display="flex"; div.style.alignItems="center"; div.style.gap="6px";
+
+    const chk=document.createElement("input"); chk.type="checkbox"; chk.dataset.slot=i;
+    const sel=document.createElement("select"); sel.dataset.slot=i;
+    sel.style.padding="6px"; sel.style.borderRadius="6px"; sel.style.background="#0b1220";
+    sel.style.color="#e6f0ff"; sel.style.border="1px solid rgba(255,255,255,0.06)";
+    const emptyOpt=document.createElement("option"); emptyOpt.value=""; emptyOpt.innerText=`원하는 옵션 ${i+1}`; sel.appendChild(emptyOpt);
     OPTION_NAMES.forEach(name=>{ const o=document.createElement("option"); o.value=name; o.innerText=name; sel.appendChild(o); });
-    cont.appendChild(sel);
+
+    div.appendChild(chk); div.appendChild(sel);
+    cont.appendChild(div);
   }
 }
 
 function computeExpectation(){
   const selects = document.querySelectorAll("#desiredContainer select");
-  const desired = Array.from(selects).map(s=>s.value);
-  if(desired.some(v=>v==="")){ alert("원하는 옵션 5개를 모두 선택해주세요."); return; }
+  const checkboxes = document.querySelectorAll("#desiredContainer input[type=checkbox]");
 
-  const lockCount = parseInt(document.getElementById("lockCountSelect").value,10);
+  const desired = Array.from(selects).map(s=>s.value);
+  const lockedSlots = Array.from(checkboxes).map(c=>c.checked);
+  const lockCount = lockedSlots.filter(v=>v).length;
+
+  if(desired.some(v=>v==="")){ alert("모든 슬롯에 원하는 옵션을 선택하세요."); return; }
 
   // 풀 구성
-  const pool = [];
-  for(const name of OPTION_NAMES){
-    for(let i=0;i<OPTION_LIMITS[name];i++) pool.push(name);
-  }
-  const counts={}; pool.forEach(v=> counts[v]=(counts[v]||0)+1);
+  const counts={};
+  for(const name of OPTION_NAMES){ counts[name]=OPTION_LIMITS[name]; }
 
-  // 순서 무관
+  // 순서 상관없이 계산
   let numerator=1;
   const tempCounts={...counts};
   for(const opt of desired){
     if(!tempCounts[opt] || tempCounts[opt]<=0){ numerator=0; break; }
     numerator *= tempCounts[opt]; tempCounts[opt]--;
   }
-  let denominator=1; for(let i=0;i<5;i++) denominator*=(5-i);
-
-  const p = numerator/denominator;
-  const expectedTrials = 1/p;
-  const expectedStones = expectedTrials * stonePerTry(lockCount);
+  const denominator=1*2*3*4*5; // 5개 순서 상관 없는 전체 경우 수
+  const p=numerator/denominator;
+  const expectedTrials=1/p;
+  const expectedStones=expectedTrials*stonePerTry(lockCount);
 
   function fmtPct(x){ return (x*100).toFixed(6)+"%"; }
   function fmtNum(x){ return x>=1e6?Math.round(x).toLocaleString():Number(x.toFixed(2)).toLocaleString(); }
@@ -198,7 +195,7 @@ function computeExpectation(){
     <p><strong>기대 시도 횟수:</strong> ${fmtNum(expectedTrials)}</p>
     <p><strong>기대 옵션 변경 스톤:</strong> ${fmtNum(expectedStones)}개</p>
     <hr>
-    <p style="color:#cfe3ff"><em>참고:</em> 슬롯 잠금/리롤과 별개로 순서 상관 없이 원하는 옵션 5개가 모두 나오면 성공으로 계산합니다.</p>
+    <p style="color:#cfe3ff"><em>참고:</em> 슬롯 리롤과 별개로 순서 상관 없이 원하는 옵션이 모두 나오면 성공으로 계산합니다.</p>
   `;
 }
 
