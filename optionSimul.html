@@ -133,10 +133,11 @@ function renderEquipSelect(){
   };
 }
 
-// 장비 이미지 업데이트
+// 장비 이미지 업데이트 (공백 제거)
 function updateEquipImage(){
   const img = document.getElementById("equipImg");
-  img.src = `IMG/${currentEquip}.png`;
+  const fileName = currentEquip.replace(/\s/g, "") + ".png"; // 공백 제거
+  img.src = `IMG/${fileName}`;
   img.alt = currentEquip;
 }
 
