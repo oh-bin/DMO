@@ -101,27 +101,26 @@
   equipImg.src = equipImages[equipSelect.value];
 
   // ===== 강화 확률 하드코딩 =====
-  const baseSuccess = [1.0,1.0,0.9,0.85,0.7,0.55,0.4,0.3,0.2,0.12,0.09,0.07,0.05,0.02,0.02];
-  const extraSuccess= [1.0,1.0,0.99,0.935,0.77,0.605,0.44,0.33,0.22,0.132,0.099,0.077,0.055,0.022,0.022];
-  const breakRates = [0,0,0.01,0.02,0.03,0.05,0.07,0.1,0.12,0.15,0.18,0.2,0.25,0.3,0.35];
+  const baseSuccess = [1.0,1.0,0.9,0.85,0.7,0.55,0.4,0.3,0.2,0.12,0.09,0.07,0.05,0.02];
+  const extraSuccess= [1.0,1.0,0.99,0.935,0.77,0.605,0.44,0.33,0.22,0.132,0.099,0.077,0.055,0.022];
+  const breakRates = [0,0,0.01,0.02,0.03,0.05,0.07,0.1,0.12,0.15,0.18,0.2,0.25,0.3];
 
-  // ===== 비용 하드코딩 (단위: bit) =====
+  // ===== 비용 하드코딩 (단위: Bit 기준) =====
   const costsBit = [
-    1_000_000_000_000,
-    1_200_000_000_000,
-    5_500_000_000_000,
-    8_000_000_000_000,
-    10_541_520_000_000,
-    12_000_000_000_000,
-    15_300_000_000_000,
-    18_000_000_000_000,
-    20_200_000_000_000,
-    30_784_610_000_000,
-    35_000_000_000_000,
-    40_770_000_000_000,
-    78_439_190_000_000,
-    90_000_000_000_000,
-    100_000_000_000_000
+    1_000_000_000,   // 1
+    1_200_000_000,
+    5_500_000_000,
+    8_000_000_000,
+    10_541_520_000,
+    12_000_000_000,
+    15_300_000_000,
+    18_000_000_000,
+    20_200_000_000,
+    30_784_610_000,
+    35_000_000_000,
+    40_770_000_000,
+    78_439_190_000,
+    90_000_000_000
   ];
 
   // ===== 단계 선택 =====
@@ -140,21 +139,21 @@
     targetSelect.add(opt2);
   }
 
-  // ===== 비용 단위 변환 함수 =====
+  // ===== 비용 단위 변환 함수 (1000Bit=1M, 1000M=1T) =====
   function formatCost(bit){
-    const T = Math.floor(bit / 1e12);
-    bit -= T*1e12;
-    const M = Math.floor(bit / 1e6);
-    bit -= M*1e6;
-    return `${T ? T + 'T ' : ''}${M ? M + 'M ' : ''}${bit ? bit + 'Bit' : ''}`.trim();
+    let m = Math.floor(bit / 1000);
+    let b = bit % 1000;
+    let t = Math.floor(m / 1000);
+    m = m % 1000;
+    return `${t ? t + 'T ' : ''}${m ? m + 'M ' : ''}${b ? b + 'Bit' : ''}`.trim();
   }
 
-  // ===== 강화 단계 설명 테이블 채우기 =====
+  // ===== 강화 단계 설명 테이블 채우기 (1->2, 2->3 ...) =====
   const tbody = document.querySelector("#infoTable tbody");
-  for(let i=0;i<15;i++){
+  for(let i=0;i<14;i++){
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${i+1}</td>
+      <td>${i+1} → ${i+2}</td>
       <td>${(baseSuccess[i]*100).toFixed(1)}%</td>
       <td>${(extraSuccess[i]*100).toFixed(1)}%</td>
       <td>${(breakRates[i]*100).toFixed(1)}%</td>
@@ -168,14 +167,14 @@
     const target = parseInt(targetSelect.value);
     const useExtra = document.getElementById('extraMat').checked;
 
-    if(target < start){
-      alert("목표 단계는 시작 단계 이상이어야 합니다.");
+    if(target <= start){
+      alert("목표 단계는 시작 단계보다 커야 합니다.");
       return;
     }
 
     let totalCostBit = 0;
 
-    for(let i=start; i<=target; i++){
+    for(let i=start; i<target; i++){
       const cost = costsBit[i-1];
       const pSuccess = useExtra ? extraSuccess[i-1] : baseSuccess[i-1];
       const expectedTries = 1 / pSuccess;
@@ -184,7 +183,7 @@
 
     document.getElementById('result').innerHTML = `
       <h3>계산 결과</h3>
-      <p>총 예상 비용: <b>${formatCost(totalCostBit)}</b></p>
+      <p>총 예상 비용: <b>${formatCost(Math.round(totalCostBit))}</b></p>
     `;
   }
 </script>
