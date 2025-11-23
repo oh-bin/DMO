@@ -4,90 +4,96 @@
 <meta charset="utf-8" />
 <title>바이탈 브레스 디지바이스 V — 잠금/기대값 계산기</title>
 <style>
-  body { font-family: Arial, Helvetica, sans-serif; background:#071126; color:#e6f0ff; padding:20px; }
-  .container { max-width:1000px; margin:0 auto; background:#0f1f33; padding:18px; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,0.6); }
-  h1 { color:#7ddcff; margin-bottom:6px; }
-  .top-images { display:flex; gap:10px; margin-bottom:12px; }
-  img.example { width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.06); }
+body { font-family: Arial, Helvetica, sans-serif; background:#071126; color:#e6f0ff; padding:20px; }
+.container { max-width:1000px; margin:0 auto; background:#0f1f33; padding:18px; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,0.6); }
+h1 { color:#7ddcff; margin-bottom:6px; }
+.top-images { display:flex; gap:10px; margin-bottom:12px; }
+img.example { width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.06); }
 
-  .row { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
-  .col { flex:1; }
+.row { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
+.col { flex:1; }
 
-  button.primary { background:#2f6ff7; color:white; border:none; padding:10px 12px; border-radius:8px; cursor:pointer; }
-  button.secondary { background:#1e293b; color:#cfe3ff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
+button.primary { background:#2f6ff7; color:white; border:none; padding:10px 12px; border-radius:8px; cursor:pointer; }
+button.secondary { background:#1e293b; color:#cfe3ff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
 
-  table { width:100%; border-collapse:collapse; margin-top:10px; }
-  th, td { border:1px solid rgba(255,255,255,0.06); padding:8px; text-align:center; }
-  th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th, td { border:1px solid rgba(255,255,255,0.06); padding:8px; text-align:center; }
+th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
 
-  .slot-lock { display:flex; gap:6px; justify-content:center; align-items:center; }
-  .lock-btn { background:#fbbf24; color:#0b1220; padding:6px 8px; border-radius:6px; cursor:pointer; border:none; }
-  .locked { background:#fb7185 !important; color:white; }
+.lock-btn { background:#fbbf24; color:#0b1220; padding:6px 8px; border-radius:6px; cursor:pointer; border:none; }
+.locked { background:#fb7185 !important; color:white; }
 
-  .controls { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
-  .note { color:#9fb0d6; font-size:13px; margin-top:12px; }
+.controls { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.note { color:#9fb0d6; font-size:13px; margin-top:12px; }
 
-  .results { margin-top:14px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; }
-  .results p { margin:6px 0; }
+.results { margin-top:14px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; }
+.results p { margin:6px 0; }
 
-  #desiredContainer select { display:block; width:200px; margin-bottom:8px; }
+#desiredContainer select { display:block; width:200px; margin-bottom:8px; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>바이탈 브레스 디지바이스 V — 옵션 잠금 & 기대값 계산기</h1>
+<h1>바이탈 브레스 디지바이스 V — 옵션 잠금 & 기대값 계산기</h1>
 
-  <div class="top-images">
-    <img class="example" src="/mnt/data/BFC476BF-6152-4F44-BB29-065C8BCBC8B8.png" alt="example1">
-    <img class="example" src="/mnt/data/7B7DE10B-0F4E-490C-8498-59CFD9DFCE84.png" alt="example2">
+<div class="top-images">
+  <img class="example" src="/mnt/data/BFC476BF-6152-4F44-BB29-065C8BCBC8B8.png" alt="example1">
+  <img class="example" src="/mnt/data/7B7DE10B-0F4E-490C-8498-59CFD9DFCE84.png" alt="example2">
+</div>
+
+<h2>1. 현재 슬롯 옵션 리롤</h2>
+<div class="row">
+  <div class="col">
+    <button class="primary" onclick="rerollUnlocked()">옵션(비잠금) 리롤</button>
+    <button class="secondary" onclick="resetAll()">모두 초기화</button>
   </div>
+</div>
 
-  <div class="row">
-    <div class="col">
-      <button class="primary" onclick="rerollUnlocked()">옵션(비잠금) 리롤</button>
-      <button class="secondary" onclick="resetAll()">모두 초기화</button>
-    </div>
-  </div>
+<table>
+  <thead><tr><th>슬롯</th><th>현재 옵션 (고정=잠금)</th><th>잠금 토글</th></tr></thead>
+  <tbody id="slotsTbody"></tbody>
+</table>
 
-  <table>
-    <thead>
-      <tr><th>슬롯</th><th>현재 옵션 (고정=잠금)</th><th>잠금 토글</th></tr>
-    </thead>
-    <tbody id="slotsTbody"></tbody>
-  </table>
+<hr style="margin:14px 0; border-color:rgba(255,255,255,0.04)">
 
-  <hr style="margin:14px 0; border-color:rgba(255,255,255,0.04)">
+<h2>2. 기대값 계산 (별개)</h2>
+<p>아래에서 원하는 옵션 5개와 잠금 슬롯 수를 선택 후 계산</p>
 
-  <h3>원하는 옵션 (순서 상관 없음)</h3>
-  <div id="desiredContainer"></div>
+<div id="lockCountContainer" style="margin-bottom:8px;">
+  잠금 슬롯 수:
+  <select id="lockCountSelect">
+    <option value="0">0</option>
+    <option value="1">1</option>
+    <option value="2">2</option>
+  </select>
+</div>
 
-  <div class="controls">
-    <button class="primary" onclick="computeExpectation()">기대 옵션 변경 스톤 계산</button>
-    <button class="secondary" onclick="fillDesiredWithCurrent()">현재 슬롯값 복사</button>
-  </div>
+<div id="desiredContainer"></div>
 
-  <div class="results" id="resultBox">
-    <p>설명: 슬롯을 잠그면 리롤 시 변경되지 않습니다. 원하는 옵션 5개를 입력한 뒤 계산하세요.</p>
-  </div>
+<div class="controls">
+  <button class="primary" onclick="computeExpectation()">기대 옵션 변경 스톤 계산</button>
+</div>
 
-  <div class="note">
-    * 각 옵션 항목별 최대 등장 허용 수가 있습니다.<br>
-    * 잠금 수에 따라 1회 스톤 소모: 0잠금=1, 1잠금=3, 2잠금=5.
-  </div>
+<div class="results" id="resultBox">
+  <p>설명: 슬롯 잠금 수를 선택하고 원하는 옵션 5개를 입력하세요.</p>
+</div>
+
+<div class="note">
+* 각 옵션 항목별 최대 등장 허용 수가 있습니다.<br>
+* 슬롯 잠금 수에 따른 1회 스톤 소모량: 0잠금=1, 1잠금=3, 2잠금=5.
+</div>
 </div>
 
 <script>
 const OPTION_LIMITS = {
-  "공격력":2, "방어력":2, "최대체력":2, "디지소울":2,
-  "스킬피해":2, "크리티컬":2, "치명피해":2, "회피":2, "적중도":2,
-  "방어력%":1, "최대 DS 증가%":1, "최대 HP 증가%":1,
-  "스킬 데미지 증가%":1, "최종 데미지 증가%":1
+"공격력":2,"방어력":2,"최대체력":2,"디지소울":2,
+"스킬피해":2,"크리티컬":2,"치명피해":2,"회피":2,"적중도":2,
+"방어력%":1,"최대 DS 증가%":1,"최대 HP 증가%":1,
+"스킬 데미지 증가%":1,"최종 데미지 증가%":1
 };
 const OPTION_NAMES = Object.keys(OPTION_LIMITS);
 
-let slots = [
-  {value:"", locked:false},{value:"", locked:false},{value:"", locked:false},{value:"", locked:false},{value:"", locked:false}
-];
+let slots = [{value:"",locked:false},{value:"",locked:false},{value:"",locked:false},{value:"",locked:false},{value:"",locked:false}];
 
 function stonePerTry(lockCount){ return lockCount===0?1:(lockCount===1?3:5); }
 
@@ -95,7 +101,7 @@ function buildPool(excludeUsed=[]){
   const pool=[]; const used={};
   excludeUsed.forEach(v=>{ if(v) used[v]=(used[v]||0)+1; });
   OPTION_NAMES.forEach(name=>{
-    const allowed = OPTION_LIMITS[name]; 
+    const allowed = OPTION_LIMITS[name];
     const remaining = Math.max(allowed-(used[name]||0),0);
     for(let i=0;i<remaining;i++) pool.push(name);
   });
@@ -136,7 +142,6 @@ function renderSlots(){
   }
 }
 
-// 슬롯 리롤 (잠금 적용)
 function rerollUnlocked(){
   const lockedValues = slots.filter(s=>s.locked).map(s=>s.value).filter(Boolean);
   let pool = shuffle(buildPool(lockedValues));
@@ -144,8 +149,7 @@ function rerollUnlocked(){
   renderSlots();
 }
 
-function resetAll(){ for(let i=0;i<5;i++){ slots[i].value=""; slots[i].locked=false; } fillInitial(); }
-
+// 기대값 계산 UI
 function renderDesiredUI(){
   const cont=document.getElementById("desiredContainer"); cont.innerHTML="";
   for(let i=0;i<5;i++){
@@ -158,58 +162,48 @@ function renderDesiredUI(){
   }
 }
 
-function fillDesiredWithCurrent(){
-  const selects = document.querySelectorAll("#desiredContainer select");
-  selects.forEach((s,i)=> s.value = slots[i].value||"");
-}
-
-// 순서 상관 없는 기대값 계산 (슬롯 상태와 무관)
 function computeExpectation(){
   const selects = document.querySelectorAll("#desiredContainer select");
   const desired = Array.from(selects).map(s=>s.value);
   if(desired.some(v=>v==="")){ alert("원하는 옵션 5개를 모두 선택해주세요."); return; }
+
+  const lockCount = parseInt(document.getElementById("lockCountSelect").value,10);
 
   // 풀 구성
   const pool = [];
   for(const name of OPTION_NAMES){
     for(let i=0;i<OPTION_LIMITS[name];i++) pool.push(name);
   }
+  const counts={}; pool.forEach(v=> counts[v]=(counts[v]||0)+1);
 
-  // 옵션별 카운트
-  const counts={};
-  pool.forEach(v=> counts[v]=(counts[v]||0)+1);
-
-  // 원하는 옵션 확률 계산 (순서 무관)
+  // 순서 무관
   let numerator=1;
   const tempCounts={...counts};
   for(const opt of desired){
     if(!tempCounts[opt] || tempCounts[opt]<=0){ numerator=0; break; }
-    numerator *= tempCounts[opt];
-    tempCounts[opt]--;
+    numerator *= tempCounts[opt]; tempCounts[opt]--;
   }
-  const remainingSlots = 5;
-  let denominator=1;
-  for(let i=0;i<remainingSlots;i++){ denominator*=remainingSlots-i; }
+  let denominator=1; for(let i=0;i<5;i++) denominator*=(5-i);
 
   const p = numerator/denominator;
   const expectedTrials = 1/p;
-  const expectedStones = expectedTrials * 1; // 잠금 수 무관, 기대값 계산은 별개
+  const expectedStones = expectedTrials * stonePerTry(lockCount);
 
   function fmtPct(x){ return (x*100).toFixed(6)+"%"; }
   function fmtNum(x){ return x>=1e6?Math.round(x).toLocaleString():Number(x.toFixed(2)).toLocaleString(); }
 
   document.getElementById("resultBox").innerHTML=`
+    <p><strong>잠금 수:</strong> ${lockCount}개</p>
     <p><strong>단일 시도 성공 확률:</strong> ${fmtPct(p)}</p>
     <p><strong>기대 시도 횟수:</strong> ${fmtNum(expectedTrials)}</p>
     <p><strong>기대 옵션 변경 스톤:</strong> ${fmtNum(expectedStones)}개</p>
     <hr>
-    <p style="color:#cfe3ff"><em>참고:</em> 순서 상관없이 원하는 옵션 5개가 모두 나오면 성공으로 계산합니다. 슬롯 잠금과 별개 계산입니다.</p>
+    <p style="color:#cfe3ff"><em>참고:</em> 슬롯 잠금/리롤과 별개로 순서 상관 없이 원하는 옵션 5개가 모두 나오면 성공으로 계산합니다.</p>
   `;
 }
 
 window.rerollUnlocked=rerollUnlocked;
 window.resetAll=resetAll;
-window.fillDesiredWithCurrent=fillDesiredWithCurrent;
 window.computeExpectation=computeExpectation;
 
 function init(){ fillInitial(); renderDesiredUI(); }
