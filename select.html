@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>유키 길드 DMO Tools</title>
 <style>
-/* 기본 스타일 */
 body {
   margin:0;
   padding:0;
@@ -17,13 +16,30 @@ body {
   overflow:hidden;
   color:#fff;
   position: relative;
-  z-index: 1;
 }
+
+/* 길드 마크 배경 */
+body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 600px;        /* 원하는 크기로 조절 */
+  height: 600px;
+  background: url('IMG/guild_mark.png') no-repeat center center;
+  background-size: contain;
+  transform: translate(-50%, -50%);
+  opacity: 0.1;       /* 희미하게 표시 */
+  z-index: 0;
+}
+
 h1 {
   text-align:center;
   margin-bottom:40px;
   font-size:3em;
   text-shadow: 2px 2px 10px rgba(0,0,0,0.7);
+  position: relative;
+  z-index: 1;
 }
 .container {
   display:flex;
@@ -31,7 +47,7 @@ h1 {
   flex-wrap:wrap;
   justify-content:center;
   position: relative;
-  z-index: 2;
+  z-index: 1;
 }
 .card {
   background: rgba(255,255,255,0.05);
@@ -42,6 +58,8 @@ h1 {
   cursor:pointer;
   transition: transform 0.3s, background 0.3s, box-shadow 0.3s;
   box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  position: relative;
+  z-index: 1;
 }
 .card:hover {
   transform: translateY(-10px) scale(1.05);
@@ -65,35 +83,9 @@ h1 {
   font-size:0.95em;
   color:#cfe3ff;
 }
-
-/* 떠다니는 길드 마크 */
-#floatingMarks {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0; /* 카드 뒤 */
-}
-.floatingMark {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  opacity: 0.5;
-  animation: floatAnim linear infinite;
-}
-@keyframes floatAnim {
-  0% { transform: translateY(100vh) translateX(0) rotate(0deg); opacity:0; }
-  10% { opacity:0.6; }
-  100% { transform: translateY(-100px) translateX(var(--x)) rotate(360deg); opacity:0; }
-}
 </style>
 </head>
 <body>
-
-<div id="floatingMarks"></div> <!-- 떠다니는 마크 -->
 
 <div>
   <h1>유키 길드 DMO Tools 선택</h1>
@@ -110,31 +102,6 @@ h1 {
     </div>
   </div>
 </div>
-
-<script>
-// 떠다니는 길드 마크 생성
-const markCount = 15; // 마크 갯수
-const container = document.getElementById("floatingMarks");
-
-for(let i=0; i<markCount; i++){
-  const img = document.createElement("img");
-  img.src = "IMG/guild_mark.png"; // 길드 마크 PNG
-  img.className = "floatingMark";
-  
-  const x = Math.random() * window.innerWidth;
-  img.style.setProperty('--x', (Math.random()*200-100)+'px'); // 좌우 흔들림
-  img.style.left = x + "px";
-  
-  const duration = 20 + Math.random()*10; // 20~30초
-  img.style.animationDuration = duration + "s";
-  
-  const scale = 0.5 + Math.random()*0.7;
-  img.style.width = 60*scale + "px";
-  img.style.height = 60*scale + "px";
-  
-  container.appendChild(img);
-}
-</script>
 
 </body>
 </html>
