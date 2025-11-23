@@ -12,6 +12,9 @@
     select { width:100%; box-sizing:border-box; padding:5px; }
     .btn { margin-top:20px; padding:12px 20px; border:none; background:#2d7ff9; color:#fff; border-radius:10px; cursor:pointer; font-size:16px; }
     .result { margin-top:20px; padding:15px; background:#f1f8ff; border-radius:10px; }
+    table { width:100%; border-collapse:collapse; margin-top:20px; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+    th { background:#f0f0f0; }
   </style>
 </head>
 <body>
@@ -54,9 +57,28 @@
     </div>
   </div>
 
+  <div style="margin-bottom:20px;">
+    <strong>※ 강화 백업 칩 사용 필수:</strong> 파괴를 방지해줍니다.
+  </div>
+
   <button class="btn" onclick="calculate()">기대값 계산</button>
 
   <div class="result" id="result"></div>
+
+  <h3>강화 단계 설명</h3>
+  <table id="infoTable">
+    <thead>
+      <tr>
+        <th>단계</th>
+        <th>기본 성공 확률</th>
+        <th>강화 해킹 툴 사용 시 성공 확률</th>
+        <th>파괴 확률</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- JS로 채움 -->
+    </tbody>
+  </table>
 </div>
 
 <script>
@@ -85,21 +107,21 @@
 
   // ===== 비용 하드코딩 (단위: bit) =====
   const costsBit = [
-    1_000_000_000_000,      // 1->2
-    1_200_000_000_000,      // 2->3
-    5_500_000_000_000,      // 3->4
-    8_000_000_000_000,      // 4->5
-    10_541_520_000_000,     // 5->6
-    12_000_000_000_000,     // 6->7
-    15_300_000_000_000,     // 7->8
-    18_000_000_000_000,     // 8->9
-    20_200_000_000_000,     // 9->10
-    30_784_610_000_000,     // 10->11
-    35_000_000_000_000,     // 11->12
-    40_770_000_000_000,     // 12->13
-    78_439_190_000_000,     // 13->14
-    90_000_000_000_000,     // 14->15
-    100_000_000_000_000     // 15->16
+    1_000_000_000_000,
+    1_200_000_000_000,
+    5_500_000_000_000,
+    8_000_000_000_000,
+    10_541_520_000_000,
+    12_000_000_000_000,
+    15_300_000_000_000,
+    18_000_000_000_000,
+    20_200_000_000_000,
+    30_784_610_000_000,
+    35_000_000_000_000,
+    40_770_000_000_000,
+    78_439_190_000_000,
+    90_000_000_000_000,
+    100_000_000_000_000
   ];
 
   // ===== 단계 선택 =====
@@ -127,6 +149,19 @@
     return `${T ? T + 'T ' : ''}${M ? M + 'M ' : ''}${bit ? bit + 'Bit' : ''}`.trim();
   }
 
+  // ===== 강화 단계 설명 테이블 채우기 =====
+  const tbody = document.querySelector("#infoTable tbody");
+  for(let i=0;i<15;i++){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${(baseSuccess[i]*100).toFixed(1)}%</td>
+      <td>${(extraSuccess[i]*100).toFixed(1)}%</td>
+      <td>${(breakRates[i]*100).toFixed(1)}%</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
   // ===== 계산 =====
   function calculate(){
     const start = parseInt(startSelect.value);
@@ -139,22 +174,17 @@
     }
 
     let totalCostBit = 0;
-    let successAccum = 1;
 
     for(let i=start; i<=target; i++){
       const cost = costsBit[i-1];
       const pSuccess = useExtra ? extraSuccess[i-1] : baseSuccess[i-1];
-      const pBreak = breakRates[i-1];
-
       const expectedTries = 1 / pSuccess;
       totalCostBit += expectedTries * cost;
-      successAccum *= (1 - pBreak);
     }
 
     document.getElementById('result').innerHTML = `
       <h3>계산 결과</h3>
       <p>총 예상 비용: <b>${formatCost(totalCostBit)}</b></p>
-      <p>파괴 미발생 누적 확률: <b>${(successAccum*100).toFixed(2)}%</b></p>
     `;
   }
 </script>
