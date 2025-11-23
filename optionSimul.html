@@ -1,40 +1,71 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>옵션 기대값 계산기</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#f5f5f5; padding: 20px; }
-    .box { background:#fff; padding:15px; border-radius:10px; margin-bottom:20px; }
-    select, button, input { margin:5px 0; padding:5px; }
-    .slot { font-weight:bold; margin:4px 0; }
-    .locked { color:#1976d2; font-weight:bold;}
-  </style>
+<meta charset="UTF-8">
+<title>바이탈 브레스 디지바이스 V - 옵션 기대값 계산기</title>
+<style>
+  body { font-family: sans-serif; background:#f7f7f7; padding:20px; }
+  .container { max-width:1000px; margin:auto; background:#fff; padding:20px; border-radius:12px; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  th, td { border:1px solid #ddd; padding:6px; text-align:center; font-size:13px; }
+  select, input { width:100%; padding:4px; }
+  .btn { margin-top:15px; padding:10px 16px; background:#2d7ff9; color:#fff; border:none; border-radius:8px; cursor:pointer;}
+  h3 { margin-top:30px; }
+  .counter { font-weight:bold; margin-top:10px; }
+</style>
 </head>
 <body>
+<div class="container">
 
-<h2>옵션 뽑기</h2>
-<div class="box">
-  <div id="currentSlots"></div>
-  <button onclick="rollOptions()">옵션 पुन설정</button>
-  <p>사용한 옵션변경스톤: <span id="usedStones">0</span> 개</p>
+<h2>바이탈 브레스 디지바이스 V 옵션 기대값 계산기</h2>
+
+<!-- ================= 현재 옵션 + 잠금 (실제 돌리기용 UI) ================= -->
+<h3>현재 옵션 (실제 생성용)</h3>
+<table>
+  <tr>
+    <th>슬롯</th>
+    <th>옵션</th>
+    <th>잠금</th>
+  </tr>
+  <tbody id="currentTable"></tbody>
+</table>
+
+<button class="btn" onclick="rollOptions()">옵션 돌리기</button>
+
+<div class="counter">
+  사용한 옵션변경스톤: <span id="usedStone">0</span> 개
 </div>
 
-<h2>기대값 계산 설정</h2>
-<div class="box">
-  <h4>원하는 옵션 5개 선택</h4>
-  <div id="desiredOptions"></div>
+<!-- ================= 기대값 전용 설정 ================= -->
+<h3>기대값 계산용 설정 (별도)</h3>
 
-  <h4>기대값용 잠금 슬롯 선택</h4>
-  <div id="expectedLocks"></div>
+<h4>잠금 슬롯 선택 (최대 2개)</h4>
+<table>
+  <tr>
+    <th>슬롯</th>
+    <th>잠금 여부</th>
+  </tr>
+  <tbody id="expectLockTable"></tbody>
+</table>
 
-  <button onclick="calculateExpected()">기대값 계산</button>
-  <p id="expectedResult"></p>
+<h4>원하는 최종 옵션 (총 5개)</h4>
+<table>
+  <tr>
+    <th>슬롯</th>
+    <th>원하는 옵션</th>
+  </tr>
+  <tbody id="targetOptionTable"></tbody>
+</table>
+
+<button class="btn" onclick="calculateExpectation()">기대 옵션변경 스톤 계산</button>
+
+<div id="resultBox" style="margin-top:20px; font-weight:bold;"></div>
+
 </div>
 
 <script>
-/* ===== 옵션 데이터 ===== */
-const options = [
+// ================= 옵션 정의 =================
+const optionPool = [
   {name:"공격력", max:2},
   {name:"방어력", max:2},
   {name:"최대체력", max:2},
@@ -48,99 +79,182 @@ const options = [
   {name:"최대 DS 증가%", max:1},
   {name:"최대 HP 증가%", max:1},
   {name:"스킬 데미지 증가%", max:1},
-  {name:"최종 데미지 증가%", max:1}
+  {name:"최종 데미지 증가%", max:1},
 ];
 
-const PROB = 0.0434; // 4.34%
 let usedStone = 0;
-let current = ["","","","",""];
 
-/* ===== 슬롯 출력 ===== */
-function renderSlots() {
-  const div = document.getElementById("currentSlots");
-  div.innerHTML = "";
-  current.forEach((o,i)=>{
-    div.innerHTML += `<div class="slot">슬롯 ${i+1}: ${o || "-"}</div>`;
+const currentTable = document.getElementById("currentTable");
+const expectLockTable = document.getElementById("expectLockTable");
+const targetTable = document.getElementById("targetOptionTable");
+
+function createOptionSelect() {
+  const sel = document.createElement("select");
+  const empty = document.createElement("option");
+  empty.value = "";
+  empty.textContent = "- 선택 -";
+  sel.appendChild(empty);
+  optionPool.forEach(opt=>{
+    const o = document.createElement("option");
+    o.value = opt.name;
+    o.textContent = opt.name;
+    sel.appendChild(o);
   });
+  return sel;
 }
 
-function rollOptions() {
-  let pool = [];
-  options.forEach(opt=>{
-    let count=opt.max;
-    for(let i=0;i<count;i++) pool.push(opt.name);
-  });
+// ================= 현재 슬롯 생성 =================
+for(let i=1;i<=5;i++){
+  const tr = document.createElement("tr");
+  const tdSlot = document.createElement("td");
+  const tdOpt = document.createElement("td");
+  const tdLock = document.createElement("td");
 
-  current = [];
+  tdSlot.textContent = i;
 
-  for(let i=0;i<5;i++){
-    if(pool.length===0){
-      current.push("");
-      continue;
-    }
-    let idx = Math.floor(Math.random()*pool.length);
-    current.push(pool[idx]);
-    pool.splice(idx,1);
-  }
+  const sel = createOptionSelect();
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
 
-  usedStone += 1;
-  document.getElementById("usedStones").innerText = usedStone;
-  renderSlots();
+  tdOpt.appendChild(sel);
+  tdLock.appendChild(chk);
+
+  tr.appendChild(tdSlot);
+  tr.appendChild(tdOpt);
+  tr.appendChild(tdLock);
+
+  currentTable.appendChild(tr);
 }
 
-/* ===== UI 생성 ===== */
-function buildSelectors() {
-  const d = document.getElementById("desiredOptions");
-  const l = document.getElementById("expectedLocks");
+// ================= 기대값용 잠금 슬롯 =================
+for(let i=1;i<=5;i++){
+  const tr = document.createElement("tr");
+  const tdSlot = document.createElement("td");
+  const tdChk  = document.createElement("td");
 
-  for(let i=0;i<5;i++){
-    let sel = document.createElement("select");
-    sel.id = "want_"+i;
-    sel.innerHTML = `<option value="">선택 안함</option>`;
-    options.forEach(o=>{
-      sel.innerHTML += `<option value="${o.name}">${o.name}</option>`;
-    });
-    d.appendChild(document.createTextNode((i+1)+"번 옵션: "));
-    d.appendChild(sel);
-    d.appendChild(document.createElement("br"));
+  tdSlot.textContent = i;
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
+  chk.className = "expect-lock";
 
-    let chk = document.createElement("input");
-    chk.type="checkbox";
-    chk.id="lock_"+i;
-    l.appendChild(document.createTextNode((i+1)+"번 슬롯 잠금: "));
-    l.appendChild(chk);
-    l.appendChild(document.createElement("br"));
-  }
+  tdChk.appendChild(chk);
+  tr.appendChild(tdSlot);
+  tr.appendChild(tdChk);
+
+  expectLockTable.appendChild(tr);
 }
-buildSelectors();
-renderSlots();
 
-/* ===== 기대값 계산 ===== */
-function calculateExpected() {
-  let desired = [];
+// ================= 기대값용 원하는 옵션 슬롯 =================
+for(let i=1;i<=5;i++){
+  const tr = document.createElement("tr");
+  const tdSlot = document.createElement("td");
+  const tdOpt  = document.createElement("td");
+
+  tdSlot.textContent = i;
+  const sel = createOptionSelect();
+
+  tdOpt.appendChild(sel);
+
+  tr.appendChild(tdSlot);
+  tr.appendChild(tdOpt);
+  targetTable.appendChild(tr);
+}
+
+// ================= 실제 옵션 돌리기 (돌릴 때마다 스톤 누적) =================
+function rollOptions(){
+  const rows = currentTable.querySelectorAll("tr");
+
   let lockCount = 0;
+  rows.forEach(row=>{
+    const chk = row.children[2].querySelector("input");
+    if(chk.checked) lockCount++;
+  });
 
-  for(let i=0;i<5;i++){
-    const val = document.getElementById("want_"+i).value;
-    if(val) desired.push(val);
-    if(document.getElementById("lock_"+i).checked) lockCount++;
+  let cost = 1;
+  if(lockCount===1) cost = 3;
+  if(lockCount===2) cost = 5;
+
+  usedStone += cost;
+  document.getElementById("usedStone").innerText = usedStone;
+
+  // 랜덤 옵션 생성 (잠금된 슬롯은 유지)
+  let pool = [];
+  optionPool.forEach(opt=>{
+    for(let i=0;i<opt.max;i++){
+      pool.push(opt.name);
+    }
+  });
+
+  rows.forEach(row=>{
+    const sel = row.children[1].querySelector("select");
+    const chk = row.children[2].querySelector("input");
+    if(chk.checked) return;
+
+    const idx = Math.floor(Math.random()*pool.length);
+    const val = pool[idx];
+    sel.value = val;
+    pool.splice(idx,1);
+  });
+}
+
+// ================= 기대값 계산 =================
+function calculateExpectation(){
+  const lockChecks = document.querySelectorAll(".expect-lock");
+  const targetSelects = targetTable.querySelectorAll("select");
+
+  let lockedSlots = [];
+  lockChecks.forEach((chk,idx)=>{
+    if(chk.checked) lockedSlots.push(idx);
+  });
+
+  if(lockedSlots.length>2){
+    document.getElementById("resultBox").innerText = "잠금 슬롯은 최대 2개까지만 가능합니다.";
+    return;
   }
 
-  const cost = lockCount===0?1:(lockCount===1?3:5);
+  const targetOptions = [];
+  targetSelects.forEach(sel=>{
+    targetOptions.push(sel.value);
+  });
 
-  // 단순 확률 모델
-  const p = Math.pow(PROB, desired.length);
-  let expected = p===0?0:(1/p);
+  if(targetOptions.includes("")){
+    document.getElementById("resultBox").innerText = "원하는 옵션 5개를 모두 선택하세요.";
+    return;
+  }
 
-  let result = `
-    🔹 선택 옵션 개수: ${desired.length} <br>
-    🔹 잠금 개수: ${lockCount} <br>
-    🔹 1회 소모 스톤: ${cost} <br>
-    🔹 기대 시도 횟수: ${expected.toFixed(2)} 회 <br>
-    🔹 기대 스톤 소모량: ${(expected*cost).toFixed(2)} 개
+  let totalPool = 0;
+  optionPool.forEach(o=> totalPool += o.max);
+
+  let p = 1;
+  let removed = 0;
+
+  for(let i=0;i<5;i++){
+    if(lockedSlots.includes(i)) continue;
+
+    const target = targetOptions[i];
+    const allowed = optionPool.find(o=>o.name===target)?.max || 0;
+
+    const remainPool = totalPool - removed;
+
+    p *= (allowed / remainPool);
+    removed++;
+  }
+
+  let stoneCost = 1;
+  if(lockedSlots.length===1) stoneCost = 3;
+  if(lockedSlots.length===2) stoneCost = 5;
+
+  const expectedTry = 1 / p;
+  const expectedStone = expectedTry * stoneCost;
+
+  document.getElementById("resultBox").innerHTML = `
+    총 확률: ${(p*100).toFixed(8)}%<br>
+    시도 기대 횟수: ${expectedTry.toFixed(2)} 회<br>
+    옵션변경 스톤 1회당 소모: ${stoneCost} 개<br><br>
+    👉 <b>기대 옵션변경 스톤 개수: ${Math.round(expectedStone)}</b> 개
   `;
-  document.getElementById("expectedResult").innerHTML = result;
 }
 </script>
+
 </body>
 </html>
