@@ -12,7 +12,7 @@
     table { width:100%; border-collapse:collapse; margin-top:20px; }
     th, td { border:1px solid #ddd; padding:8px; text-align:center; }
     th { background:#f0f0f0; }
-    input { width:100%; box-sizing:border-box; padding:5px; }
+    input, select { width:100%; box-sizing:border-box; padding:5px; }
     .btn { margin-top:20px; padding:12px 20px; border:none; background:#2d7ff9; color:#fff; border-radius:10px; cursor:pointer; font-size:16px; }
     .result { margin-top:20px; padding:15px; background:#f1f8ff; border-radius:10px; }
   </style>
@@ -21,43 +21,43 @@
   <div class="container">
     <h1>디지몬 마스터즈 장비 강화 기대값 계산기</h1>
 
-    <h3>장비 이미지</h3>
-    <div class="grid">
-      <div class="item-card"><div>모자</div><img id="img-hat" /><input type="file" accept="image/*" onchange="loadImage(event, 'img-hat')"></div>
-      <div class="item-card"><div>가방</div><img id="img-bag" /><input type="file" accept="image/*" onchange="loadImage(event, 'img-bag')"></div>
-      <div class="item-card"><div>상의</div><img id="img-top" /><input type="file" accept="image/*" onchange="loadImage(event, 'img-top')"></div>
-      <div class="item-card"><div>바지</div><img id="img-pants" /><input type="file" accept="image/*" onchange="loadImage(event, 'img-pants')"></div>
-      <div class="item-card"><div>신발</div><img id="img-shoes" /><input type="file" accept="image/*" onchange="loadImage(event, 'img-shoes')"></div>
+    <h3>장비 선택 및 그림 업로드</h3>
+    <div>
+      <label for="equipSelect">장비 부위:</label>
+      <select id="equipSelect">
+        <option value="머리">머리</option>
+        <option value="상의">상의</option>
+        <option value="하의">하의</option>
+        <option value="신발">신발</option>
+        <option value="장갑">장갑</option>
+      </select>
     </div>
 
-    <h3>강화 확률 및 비용 입력</h3>
-    <table id="probTable">
+    <div class="grid">
+      <div class="item-card"><div>장비 그림</div><img id="equip-img" /><input type="file" accept="image/*" onchange="loadImage(event, 'equip-img')"></div>
+    </div>
+
+    <h3>강화 단계 설정</h3>
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <div>
+        <label for="startLvl">시작 단계:</label>
+        <select id="startLvl"></select>
+      </div>
+      <div>
+        <label for="targetLvl">목표 단계:</label>
+        <select id="targetLvl"></select>
+      </div>
+    </div>
+
+    <h3>단계별 비용 입력</h3>
+    <table>
       <thead>
         <tr>
           <th>단계</th>
-          <th>성공 확률 (%)</th>
-          <th>실패 유지 확률 (%)</th>
-          <th>하락 확률 (%)</th>
-          <th>파괴 확률 (%)</th>
-          <th>1회 비용</th>
+          <th>비용</th>
         </tr>
       </thead>
-      <tbody>
-        <script>
-          for (let i = 1; i <= 15; i++) {
-            document.write(`
-              <tr>
-                <td>${i}</td>
-                <td><input type="number" step="0.01" id="suc-${i}" /></td>
-                <td><input type="number" step="0.01" id="keep-${i}" /></td>
-                <td><input type="number" step="0.01" id="down-${i}" /></td>
-                <td><input type="number" step="0.01" id="break-${i}" /></td>
-                <td><input type="number" id="cost-${i}" /></td>
-              </tr>
-            `);
-          }
-        </script>
-      </tbody>
+      <tbody id="costTableBody"></tbody>
     </table>
 
     <button class="btn" onclick="calculate()">기대값 계산</button>
@@ -66,42 +66,65 @@
   </div>
 
   <script>
+    // ===== 하드코딩된 강화 확률 =====
+    const successRates = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25];
+    const breakRates   = [0,0,0,0.01,0.02,0.03,0.05,0.07,0.1,0.12,0.15,0.18,0.2,0.25,0.3];
+
+    // ===== 시작/목표 단계 셀렉트박스 초기화 =====
+    const startSelect = document.getElementById('startLvl');
+    const targetSelect = document.getElementById('targetLvl');
+    const costBody = document.getElementById('costTableBody');
+
+    for (let i=1; i<=15; i++){
+      const opt1 = document.createElement('option');
+      opt1.value = i;
+      opt1.text = i;
+      startSelect.add(opt1);
+
+      const opt2 = document.createElement('option');
+      opt2.value = i;
+      opt2.text = i;
+      targetSelect.add(opt2);
+
+      // 비용 입력 테이블
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i}</td><td><input type="number" id="cost-${i}" /></td>`;
+      costBody.appendChild(tr);
+    }
+
     function loadImage(event, id) {
       const file = event.target.files[0];
-      if (!file) return;
+      if(!file) return;
       const reader = new FileReader();
-      reader.onload = e => {
-        document.getElementById(id).src = e.target.result;
-      };
+      reader.onload = e => { document.getElementById(id).src = e.target.result; };
       reader.readAsDataURL(file);
     }
 
     function calculate() {
+      const start = parseInt(startSelect.value);
+      const target = parseInt(targetSelect.value);
+      if (target < start){
+        alert("목표 단계는 시작 단계 이상이어야 합니다.");
+        return;
+      }
+
       let totalCost = 0;
-      let successRateAccum = 1;
+      let successAccum = 1;
 
-      for (let i = 1; i <= 15; i++) {
-        const suc = parseFloat(document.getElementById(`suc-${i}`).value) || 0;
-        const breakP = parseFloat(document.getElementById(`break-${i}`).value) || 0;
+      for (let i=start; i<=target; i++){
         const cost = parseFloat(document.getElementById(`cost-${i}`).value) || 0;
+        const pSuccess = successRates[i-1];
+        const pBreak   = breakRates[i-1];
 
-        const pSuccess = suc / 100;
-        const pBreak = breakP / 100;
-
-        if (pSuccess === 0) continue;
-
-        // 단순 기대 시도 횟수
-        const expectedTries = 1 / (pSuccess || 1);
+        const expectedTries = 1 / pSuccess;
         totalCost += expectedTries * cost;
-
-        // 파괴 고려 간이 보정
-        successRateAccum *= (1 - pBreak);
+        successAccum *= (1 - pBreak);
       }
 
       document.getElementById('result').innerHTML = `
         <h3>계산 결과</h3>
         <p>총 예상 비용: <b>${totalCost.toLocaleString()}</b></p>
-        <p>파괴 미발생 누적 확률: <b>${(successRateAccum*100).toFixed(2)}%</b></p>
+        <p>파괴 미발생 누적 확률: <b>${(successAccum*100).toFixed(2)}%</b></p>
       `;
     }
   </script>
