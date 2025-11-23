@@ -1,83 +1,187 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>디지몬 장비 강화 비용 표</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f6f8; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; background: white; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-    th { background: #e3e8ee; }
-  </style>
+<meta charset="UTF-8">
+<title>디지몬 마스터즈 장비 강화 기대값 계산기</title>
+<style>
+  body { font-family: sans-serif; background:#f7f7f7; padding:20px; }
+  .container { max-width:900px; margin:auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+  .grid { display:grid; grid-template-columns: 1fr; gap:16px; margin-bottom:20px; }
+  .item-card { border:1px solid #ddd; border-radius:12px; padding:10px; text-align:center; }
+  .item-card img { width:150px; height:150px; object-fit:contain; border:1px dashed #ccc; border-radius:8px; }
+  select { width:100%; box-sizing:border-box; padding:5px; }
+  .btn { margin-top:20px; padding:12px 20px; border:none; background:#2d7ff9; color:#fff; border-radius:10px; cursor:pointer; font-size:16px; }
+  .result { margin-top:20px; padding:15px; background:#f1f8ff; border-radius:10px; }
+  table { width:100%; border-collapse:collapse; margin-top:20px; }
+  th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+  th { background:#f0f0f0; }
+</style>
 </head>
 <body>
+<div class="container">
+  <h1>디지몬 마스터즈 장비 강화 기대값 계산기</h1>
 
-<h2>디지몬 장비 강화 비용 표</h2>
+  <h3>장비 선택</h3>
+  <div>
+    <label for="equipSelect">장비 부위:</label>
+    <select id="equipSelect">
+      <option value="머리">머리</option>
+      <option value="가방">가방</option>
+      <option value="상의">상의</option>
+      <option value="하의">하의</option>
+      <option value="신발">신발</option>
+      <option value="장갑">장갑</option>
+    </select>
+  </div>
 
-<table id="enhanceTable">
-  <thead>
-    <tr>
-      <th>강화 단계</th>
-      <th>성공 확률</th>
-      <th>실패 확률</th>
-      <th>강화 비용 (T/M/Bit)</th>
-      <th>비용 (Bit 환산)</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <div class="grid">
+    <div class="item-card">
+      <div>장비 그림</div>
+      <img id="equip-img" src="" alt="장비 이미지">
+    </div>
+  </div>
+
+  <h3>강화 단계 설정</h3>
+  <div style="display:flex; gap:10px; margin-bottom:10px;">
+    <div>
+      <label for="startLvl">시작 단계:</label>
+      <select id="startLvl"></select>
+    </div>
+    <div>
+      <label for="targetLvl">목표 단계:</label>
+      <select id="targetLvl"></select>
+    </div>
+    <div style="display:flex; align-items:center; gap:5px;">
+      <input type="checkbox" id="extraMat">
+      <label for="extraMat">강화 해킹 툴 사용</label>
+    </div>
+  </div>
+
+  <div style="margin-bottom:20px;">
+    <strong>※ 강화 백업 칩 사용 필수:</strong> 파괴를 방지해줍니다.
+  </div>
+
+  <button class="btn" onclick="calculate()">기대값 계산</button>
+
+  <div class="result" id="result"></div>
+
+  <h3>강화 단계 설명</h3>
+  <table id="infoTable">
+    <thead>
+      <tr>
+        <th>단계</th>
+        <th>성공 확률</th>
+        <th>실패 확률</th>
+        <th>강화 해킹 툴 사용 시 성공 확률</th>
+        <th>강화 해킹 툴 사용 시 실패 확률</th>
+        <th>파괴 확률</th>
+        <th>단계별 강화 비용</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script>
-  // 단위 변환
-  function toBit(T, M, Bit) {
-    return (T * 1000000) + (M * 1000) + Bit;
-  }
+  // ===== 이미지 매핑 =====
+  const equipImages = {
+    "머리": "IMG/head.png",
+    "가방": "IMG/bag.png",
+    "상의": "IMG/top.png",
+    "하의": "IMG/pants.png",
+    "신발": "IMG/shoes.png",
+    "장갑": "IMG/gloves.png"
+  };
+  const equipSelect = document.getElementById("equipSelect");
+  const equipImg = document.getElementById("equip-img");
+  equipSelect.addEventListener("change", () => {
+    equipImg.src = equipImages[equipSelect.value] || "";
+  });
+  equipImg.src = equipImages[equipSelect.value];
 
-  // 실제 입력 데이터 + 임시값
-  const data = [
-    { from: 0, to: 1, T: 5, M: 500, Bit: 0, success: 100 },
-    { from: 1, to: 2, T: 6, M: 200, Bit: 300, success: 95 },
-    { from: 2, to: 3, T: 7, M: 800, Bit: 500, success: 90 },
-    { from: 3, to: 4, T: 8, M: 900, Bit: 750, success: 85 },
-    { from: 4, to: 5, T: 9, M: 300, Bit: 900, success: 80 },
+  // ===== 강화 확률 하드코딩 =====
+  const baseSuccess = [1.0,1.0,0.9,0.85,0.7,0.55,0.4,0.3,0.2,0.12,0.09,0.07,0.05,0.03,0.02];
+  const extraSuccess= [1.0,1.0,0.99,0.935,0.77,0.605,0.44,0.33,0.22,0.132,0.099,0.077,0.055,0.033,0.022];
+  const breakRates = [0,0,0,0,0.05,0.1,0.1,0.1,0.1,0.3,0.41,0.47,0.6,0.67,0.78];
 
-    // 사용자 제공
-    { from: 5, to: 6, T: 10, M: 541, Bit: 520, success: 75 },
-
-    { from: 6, to: 7, T: 12, M: 200, Bit: 0, success: 70 },
-    { from: 7, to: 8, T: 15, M: 100, Bit: 200, success: 65 },
-    { from: 8, to: 9, T: 18, M: 400, Bit: 500, success: 60 },
-    { from: 9, to: 10, T: 22, M: 300, Bit: 800, success: 55 },
-
-    // 사용자 제공
-    { from: 10, to: 11, T: 30, M: 784, Bit: 610, success: 50 },
-
-    { from: 11, to: 12, T: 45, M: 100, Bit: 900, success: 45 },
-    { from: 12, to: 13, T: 60, M: 300, Bit: 500, success: 40 },
-
-    // 사용자 제공
-    { from: 13, to: 14, T: 78, M: 439, Bit: 190, success: 35 },
-
-    { from: 14, to: 15, T: 95, M: 800, Bit: 0, success: 30 }
+  // ===== 비용 Bit 단위 하드코딩 =====
+  const costsBit = [
+    5500000,    // 0->1
+    1200000,
+    5500000,
+    8000000,
+    10541520,   // 4->5
+    10541520,   // 5->6
+    15300000,
+    18000000,
+    20200000,
+    30784610,   // 9->10
+    30784610,   // 10->11
+    40770000,
+    78439190,   // 12->13
+    90000000,
+    95000000    // 14->15
   ];
 
-  const tbody = document.querySelector("#enhanceTable tbody");
+  // ===== 단계 선택 =====
+  const startSelect = document.getElementById('startLvl');
+  const targetSelect = document.getElementById('targetLvl');
+  for (let i=0;i<=15;i++){
+    const opt1 = document.createElement('option'); opt1.value=i; opt1.text=i; startSelect.add(opt1);
+    const opt2 = document.createElement('option'); opt2.value=i; opt2.text=i; targetSelect.add(opt2);
+  }
 
-  data.forEach(row => {
-    const fail = 100 - row.success;
-    const bitValue = toBit(row.T, row.M, row.Bit);
+  // ===== 비용 단위 변환 =====
+  function formatCost(bit){
+    let m = Math.floor(bit / 1000);
+    let b = bit % 1000;
+    let t = Math.floor(m / 1000);
+    m = m % 1000;
+    return `${t ? t + 'T ' : ''}${m ? m + 'M ' : ''}${b ? b + 'Bit' : ''}`.trim();
+  }
 
+  // ===== 강화 단계 설명 테이블 =====
+  const tbody = document.querySelector("#infoTable tbody");
+  for(let i=0;i<15;i++){
+    const failBase = 100 - (baseSuccess[i]*100 + breakRates[i]*100);
+    const failExtra = 100 - (extraSuccess[i]*100 + breakRates[i]*100);
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${row.from} → ${row.to}</td>
-      <td>${row.success}%</td>
-      <td>${fail}%</td>
-      <td>${row.T}T ${row.M}M ${row.Bit}Bit</td>
-      <td>${bitValue.toLocaleString()} Bit</td>
+      <td>${i} → ${i+1}</td>
+      <td>${(baseSuccess[i]*100).toFixed(1)}%</td>
+      <td>${failBase.toFixed(1)}%</td>
+      <td>${(extraSuccess[i]*100).toFixed(1)}%</td>
+      <td>${failExtra.toFixed(1)}%</td>
+      <td>${(breakRates[i]*100).toFixed(1)}%</td>
+      <td>${formatCost(costsBit[i])}</td>
     `;
     tbody.appendChild(tr);
-  });
-</script>
+  }
 
+  // ===== 기대값 계산 =====
+  function calculate(){
+    const start = parseInt(startSelect.value);
+    const target = parseInt(targetSelect.value);
+    const useExtra = document.getElementById('extraMat').checked;
+
+    if(target <= start){
+      alert("목표 단계는 시작 단계보다 커야 합니다.");
+      return;
+    }
+
+    let totalCostBit = 0;
+    for(let i=start;i<target;i++){
+      const cost = costsBit[i];
+      const pSuccess = useExtra ? extraSuccess[i] : baseSuccess[i];
+      const expectedTries = 1 / pSuccess;
+      totalCostBit += expectedTries * cost;
+    }
+
+    document.getElementById('result').innerHTML = `
+      <h3>계산 결과</h3>
+      <p>총 예상 비용: <b>${formatCost(Math.round(totalCostBit))}</b></p>
+    `;
+  }
+</script>
 </body>
 </html>
