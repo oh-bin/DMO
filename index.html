@@ -104,19 +104,19 @@
   const extraSuccess= [1.0,1.0,0.99,0.935,0.77,0.605,0.44,0.33,0.22,0.132,0.099,0.077,0.055,0.033,0.022];
   const breakRates = [0,0,0,0,0.05,0.1,0.1,0.1,0.1,0.3,0.41,0.47,0.6,0.67,0.78];
 
-  // ===== 비용 Bit 단위 하드코딩 =====
+  // ===== 비용 Bit 단위 하드코딩 (T=1,000,000 Bit, M=1,000 Bit) =====
   const costsBit = [
-    5500000,    // 0->1
-    1200000,
+    5500000,    // 0->1 : 5T 500M 0Bit
+    6000000,
     5500000,
     8000000,
     10541520,   // 4->5
-    10541520,   // 5->6
+    10541520,   // 5->6 : 10T 541M 520Bit
     15300000,
     18000000,
     20200000,
     30784610,   // 9->10
-    30784610,   // 10->11
+    30784610,   // 10->11 : 30T 784M 610Bit
     40770000,
     78439190,   // 12->13
     90000000,
@@ -131,7 +131,7 @@
     const opt2 = document.createElement('option'); opt2.value=i; opt2.text=i; targetSelect.add(opt2);
   }
 
-  // ===== 비용 단위 변환 =====
+  // ===== 비용 단위 변환 함수 =====
   function formatCost(bit){
     let m = Math.floor(bit / 1000);
     let b = bit % 1000;
@@ -143,8 +143,8 @@
   // ===== 강화 단계 설명 테이블 =====
   const tbody = document.querySelector("#infoTable tbody");
   for(let i=0;i<15;i++){
-    const failBase = 100 - (baseSuccess[i]*100 + breakRates[i]*100);
-    const failExtra = 100 - (extraSuccess[i]*100 + breakRates[i]*100);
+    const failBase = (1 - baseSuccess[i] - breakRates[i])*100;
+    const failExtra = (1 - extraSuccess[i] - breakRates[i])*100;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${i} → ${i+1}</td>
@@ -158,7 +158,7 @@
     tbody.appendChild(tr);
   }
 
-  // ===== 기대값 계산 =====
+  // ===== 계산 =====
   function calculate(){
     const start = parseInt(startSelect.value);
     const target = parseInt(targetSelect.value);
