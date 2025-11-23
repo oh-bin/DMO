@@ -101,6 +101,13 @@ const EQUIP_OPTIONS = {
   }
 };
 
+// 장비 → 영어 이미지 파일명 매핑
+const EQUIP_IMAGE_MAP = {
+  "바이탈 브레스 디지바이스 V": "VitalBreathDeviceV.png",
+  "화려한 친절의 이어링": "FancyEarring.png",
+  "찬란한 기적의 넥클레스": "MiracleNecklace.png"
+};
+
 let currentEquip = "바이탈 브레스 디지바이스 V";
 let OPTION_NAMES = Object.keys(EQUIP_OPTIONS[currentEquip]);
 
@@ -133,15 +140,17 @@ function renderEquipSelect(){
   };
 }
 
-// 장비 이미지 업데이트 (공백 제거)
+// 장비 이미지 업데이트
 function updateEquipImage(){
   const img = document.getElementById("equipImg");
-  const fileName = currentEquip.replace(/\s/g, "") + ".png"; // 공백 제거
+  const fileName = EQUIP_IMAGE_MAP[currentEquip] || "default.png";
   img.src = `IMG/${fileName}`;
   img.alt = currentEquip;
 }
 
-// 상단 슬롯 렌더
+// 나머지 기존 코드 그대로 유지...
+// (renderSlots, rerollUnlocked, resetAll, buildPool, shuffle, fillInitial, renderExpectUI, computeExpectation, init 등)
+
 function renderSlots(){
   const tbody = document.getElementById("slotsTbody");
   tbody.innerHTML="";
@@ -166,7 +175,6 @@ function renderSlots(){
   }
 }
 
-// 상단 리롤
 function rerollUnlocked(){
   const lockedValues = slots.filter(s=>s.locked).map(s=>s.value).filter(Boolean);
   let pool = shuffle(buildPool(lockedValues));
@@ -187,7 +195,6 @@ function resetAll(){
   totalStoneUsed=0; updateStoneBox();
 }
 
-// 풀 생성
 function buildPool(excludeUsed=[]){
   const pool=[]; const used={};
   excludeUsed.forEach(v=>{ if(v) used[v]=(used[v]||0)+1; });
@@ -200,17 +207,14 @@ function buildPool(excludeUsed=[]){
   return pool;
 }
 
-// shuffle
 function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr;}
 
-// 초기값 채우기
 function fillInitial(){
   let pool=shuffle(buildPool([]));
   for(let i=0;i<5;i++){ slots[i].value=pool.length? pool.shift():""; slots[i].locked=false; }
   renderSlots();
 }
 
-// 하단 기대값 계산용 UI
 function renderExpectUI(){
   const tbody=document.getElementById("expectTbody");
   tbody.innerHTML="";
@@ -222,15 +226,9 @@ function renderExpectUI(){
     const chk=document.createElement("input"); chk.type="checkbox";
     chk.onchange=()=>{
       const lockCount = expectSlots.filter(s=>s.locked).length;
-      if(!chk.checked && expectSlots[i].locked){ // 잠금 해제는 항상 가능
-        expectSlots[i].locked = false;
-      } else if(chk.checked && lockCount>=2){ 
-        alert("최대 2개까지만 잠금할 수 있습니다."); 
-        chk.checked = false; 
-        return;
-      } else {
-        expectSlots[i].locked = chk.checked;
-      }
+      if(!chk.checked && expectSlots[i].locked){ expectSlots[i].locked = false; } 
+      else if(chk.checked && lockCount>=2){ alert("최대 2개까지만 잠금할 수 있습니다."); chk.checked = false; return; } 
+      else { expectSlots[i].locked = chk.checked; }
     };
     td2.appendChild(chk);
 
@@ -245,7 +243,6 @@ function renderExpectUI(){
   }
 }
 
-// 기대값 계산
 function computeExpectation(){
   const desired=expectSlots.map(s=>s.value);
   if(desired.some(v=>v==="")){ alert("모든 슬롯에 원하는 옵션을 선택하세요."); return; }
@@ -278,7 +275,6 @@ function computeExpectation(){
   `;
 }
 
-// 초기화
 function init(){
   renderEquipSelect();
   fillInitial();
