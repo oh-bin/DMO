@@ -51,6 +51,10 @@
       <label for="targetLvl">목표 단계:</label>
       <select id="targetLvl"></select>
     </div>
+    <div style="display:flex; align-items:center; gap:5px;">
+      <input type="checkbox" id="extraMat">
+      <label for="extraMat">추가 재료 사용</label>
+    </div>
   </div>
 
   <h3>단계별 비용 입력</h3>
@@ -70,11 +74,7 @@
 </div>
 
 <script>
-  // ===== 내부 하드코딩 확률 =====
-  const successRates = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25];
-  const breakRates   = [0,0,0,0.01,0.02,0.03,0.05,0.07,0.1,0.12,0.15,0.18,0.2,0.25,0.3];
-
-  // ===== 이미지 매핑 (상대경로 기준) =====
+  // ===== 이미지 매핑 =====
   const equipImages = {
     "머리": "IMG/head.png",
     "가방": "IMG/bag.png",
@@ -88,13 +88,17 @@
   const equipImg = document.getElementById("equip-img");
 
   equipSelect.addEventListener("change", () => {
-    const selected = equipSelect.value;
-    equipImg.src = equipImages[selected] || "";
+    equipImg.src = equipImages[equipSelect.value] || "";
   });
 
-  equipImg.src = equipImages[equipSelect.value]; // 초기 이미지
+  equipImg.src = equipImages[equipSelect.value];
 
-  // ===== 시작/목표 단계 & 비용 테이블 생성 =====
+  // ===== 강화 확률 하드코딩 =====
+  const baseSuccess = [1.0,1.0,0.9,0.85,0.7,0.55,0.4,0.3,0.2,0.12,0.09,0.07,0.05,0.02,0.02];
+  const extraSuccess= [1.0,1.0,0.99,0.935,0.77,0.605,0.44,0.33,0.22,0.132,0.099,0.077,0.055,0.022,0.022];
+  const breakRates = [0,0,0.01,0.02,0.03,0.05,0.07,0.1,0.12,0.15,0.18,0.2,0.25,0.3,0.35];
+
+  // ===== 시작/목표 단계 및 비용 테이블 =====
   const startSelect = document.getElementById('startLvl');
   const targetSelect = document.getElementById('targetLvl');
   const costBody = document.getElementById('costTableBody');
@@ -111,15 +115,17 @@
     targetSelect.add(opt2);
 
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${i}</td><td><input type="number" id="cost-${i}" /></td>`;
+    tr.innerHTML = `<td>${i}</td><td><input type="number" id="cost-${i}" value="${i*1000}" /></td>`; // 임시 비용
     costBody.appendChild(tr);
   }
 
   // ===== 계산 함수 =====
-  function calculate() {
+  function calculate(){
     const start = parseInt(startSelect.value);
     const target = parseInt(targetSelect.value);
-    if (target < start){
+    const useExtra = document.getElementById('extraMat').checked;
+
+    if(target < start){
       alert("목표 단계는 시작 단계 이상이어야 합니다.");
       return;
     }
@@ -127,10 +133,10 @@
     let totalCost = 0;
     let successAccum = 1;
 
-    for (let i=start; i<=target; i++){
+    for(let i=start; i<=target; i++){
       const cost = parseFloat(document.getElementById(`cost-${i}`).value) || 0;
-      const pSuccess = successRates[i-1];
-      const pBreak   = breakRates[i-1];
+      const pSuccess = useExtra ? extraSuccess[i-1] : baseSuccess[i-1];
+      const pBreak = breakRates[i-1];
 
       const expectedTries = 1 / pSuccess;
       totalCost += expectedTries * cost;
