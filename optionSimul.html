@@ -1,400 +1,235 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8" />
-<title>바이탈 브레스 디지바이스 V — 잠금/기대값 계산기</title>
+<meta charset="UTF-8">
+<title>바이탈 브레스 디지바이스 V - 옵션 기대값 계산기</title>
 <style>
-  body { font-family: Arial, Helvetica, sans-serif; background:#071126; color:#e6f0ff; padding:20px; }
-  .container { max-width:1000px; margin:0 auto; background:#0f1f33; padding:18px; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,0.6); }
-  h1 { color:#7ddcff; margin-bottom:6px; }
-  .top-images { display:flex; gap:10px; margin-bottom:12px; }
-  img.example { width:120px; height:120px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.06); }
-
-  .row { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
-  .col { flex:1; }
-
-  button.primary { background:#2f6ff7; color:white; border:none; padding:10px 12px; border-radius:8px; cursor:pointer; }
-  button.secondary { background:#1e293b; color:#cfe3ff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
-
+  body { font-family: sans-serif; background:#f7f7f7; padding:20px; }
+  .container { max-width:1000px; margin:auto; background:#fff; padding:20px; border-radius:12px; }
   table { width:100%; border-collapse:collapse; margin-top:10px; }
-  th, td { border:1px solid rgba(255,255,255,0.06); padding:8px; text-align:center; }
-  th { background:rgba(255,255,255,0.03); color:#cfe3ff; }
-
-  .slot-lock { display:flex; gap:6px; justify-content:center; align-items:center; }
-  .lock-btn { background:#fbbf24; color:#0b1220; padding:6px 8px; border-radius:6px; cursor:pointer; border:none; }
-  .locked { background:#fb7185 !important; color:white; }
-
-  .controls { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
-  .note { color:#9fb0d6; font-size:13px; margin-top:12px; }
-
-  .results { margin-top:14px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; }
-  .results p { margin:6px 0; }
+  th, td { border:1px solid #ddd; padding:6px; text-align:center; font-size:13px; }
+  select, input { width:100%; padding:4px; }
+  .btn { margin-top:15px; padding:10px 16px; background:#2d7ff9; color:#fff; border:none; border-radius:8px; cursor:pointer;}
+  h3 { margin-top:30px; }
 </style>
 </head>
 <body>
-  <div class="container">
-    <h1>바이탈 브레스 디지바이스 V — 옵션 잠금 & 기대값 계산기</h1>
+<div class="container">
 
-    <div class="top-images">
-      <!-- 로컬 업로드 이미지(예시). 브라우저가 접근 가능한 경로여야 표시됩니다. -->
-      <img class="example" src="/mnt/data/BFC476BF-6152-4F44-BB29-065C8BCBC8B8.png" alt="example1">
-      <img class="example" src="/mnt/data/7B7DE10B-0F4E-490C-8498-59CFD9DFCE84.png" alt="example2">
-    </div>
+<h2>바이탈 브레스 디지바이스 V 옵션 기대값 계산기</h2>
 
-    <div class="row">
-      <div class="col">
-        <button class="primary" onclick="rerollUnlocked()">옵션(비잠금) 리롤</button>
-        <button class="secondary" onclick="resetAll()">모두 초기화</button>
-      </div>
-      <div style="width:320px;">
-        <div style="display:flex; gap:8px;">
-          <button class="secondary" onclick="lockRandom()">랜덤 슬롯 잠금(1)</button>
-          <button class="secondary" onclick="unlockAll()">모든 잠금 해제</button>
-        </div>
-      </div>
-    </div>
+<!-- ================= 현재 옵션 + 잠금 (실제 돌리기용 UI) ================= -->
+<h3>현재 옵션 (실제 생성용)</h3>
+<table>
+  <tr>
+    <th>슬롯</th>
+    <th>옵션</th>
+    <th>잠금</th>
+  </tr>
+  <tbody id="currentTable"></tbody>
+</table>
 
-    <!-- 현재 슬롯 표시 및 잠금 토글(영구 잠금 until unlock) -->
-    <table>
-      <thead>
-        <tr><th>슬롯</th><th>현재 옵션 (고정=잠금)</th><th>잠금 토글</th></tr>
-      </thead>
-      <tbody id="slotsTbody"></tbody>
-    </table>
+<!-- ================= 기대값 전용 설정 ================= -->
+<h3>기대값 계산용 설정 (별도)</h3>
 
-    <hr style="margin:14px 0; border-color:rgba(255,255,255,0.04)">
+<h4>잠금 슬롯 선택 (최대 2개)</h4>
+<table>
+  <tr>
+    <th>슬롯</th>
+    <th>잠금 여부</th>
+  </tr>
+  <tbody id="expectLockTable"></tbody>
+</table>
 
-    <!-- 원하는 슬롯별 옵션 (기대값 계산용, 슬롯순서 중요) -->
-    <h3>원하는 옵션 (슬롯별)</h3>
-    <div id="desiredContainer" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;"></div>
+<h4>원하는 최종 옵션 (총 5개)</h4>
+<table>
+  <tr>
+    <th>슬롯</th>
+    <th>원하는 옵션</th>
+  </tr>
+  <tbody id="targetOptionTable"></tbody>
+</table>
 
-    <div class="controls">
-      <button class="primary" onclick="computeExpectation()">기대 옵션 변경 스톤 계산</button>
-      <button class="secondary" onclick="fillDesiredWithCurrent()">원하는 옵션에 현재 슬롯값 복사</button>
-    </div>
+<button class="btn" onclick="calculateExpectation()">기대 옵션변경 스톤 계산</button>
 
-    <div class="results" id="resultBox">
-      <p>설명: 슬롯을 잠그면 그 슬롯은 리롤 시 절대 바뀌지 않습니다. 원하는 옵션 5개를 슬롯별로 입력한 뒤 계산하세요.</p>
-    </div>
+<div id="resultBox" style="margin-top:20px; font-weight:bold;"></div>
 
-    <div class="note">
-      * 각 옵션 항목별 최대 등장 허용 수가 있습니다 (예: 공격력 최대 2개 등). 풀에서 중복 가능 수만큼만 뽑힙니다.<br>
-      * 잠금 수에 따라 1회 스톤 소모: 0잠금=1, 1잠금=3, 2잠금=5.
-    </div>
-  </div>
+</div>
 
 <script>
-/* ===== 옵션/제한 정의 (원본 규칙 그대로) ===== */
-const OPTION_LIMITS = {
-  "공격력": 2, "방어력": 2, "최대체력": 2, "디지소울": 2,
-  "스킬피해": 2, "크리티컬": 2, "치명피해": 2, "회피": 2, "적중도": 2,
-  "방어력%": 1, "최대 DS 증가%": 1, "최대 HP 증가%": 1,
-  "스킬 데미지 증가%": 1, "최종 데미지 증가%": 1
-};
-const OPTION_NAMES = Object.keys(OPTION_LIMITS);
-
-/* 슬롯 상태: { value: string, locked: boolean } */
-let slots = [
-  {value: "", locked:false},
-  {value: "", locked:false},
-  {value: "", locked:false},
-  {value: "", locked:false},
-  {value: "", locked:false}
+// ================= 옵션 정의 =================
+const optionPool = [
+  {name:"공격력", max:2},
+  {name:"방어력", max:2},
+  {name:"최대체력", max:2},
+  {name:"디지소울", max:2},
+  {name:"스킬피해", max:2},
+  {name:"크리티컬", max:2},
+  {name:"치명피해", max:2},
+  {name:"회피", max:2},
+  {name:"적중도", max:2},
+  {name:"방어력%", max:1},
+  {name:"최대 DS 증가%", max:1},
+  {name:"최대 HP 증가%", max:1},
+  {name:"스킬 데미지 증가%", max:1},
+  {name:"최종 데미지 증가%", max:1},
 ];
 
-/* 기본 비용 스톤 per try based on locks */
-function stonePerTry(lockCount) {
-  if (lockCount === 0) return 1;
-  if (lockCount === 1) return 3;
-  return 5;
-}
+const singleOptionRate = 0.0434; // 4.34%
 
-/* 풀 구성: 생성 시 (옵션별 허용 수만큼) 배열
-   excludeUsed: array of values to pre-subtract counts (for locked values) */
-function buildPool(excludeUsed=[]) {
-  const pool = [];
-  const used = {};
-  // count excludes
-  excludeUsed.forEach(v => { if (v) used[v] = (used[v]||0) + 1; });
-  for (const name of OPTION_NAMES) {
-    const allowed = OPTION_LIMITS[name];
-    const usedCount = used[name] || 0;
-    const remaining = Math.max(allowed - usedCount, 0);
-    for (let i=0;i<remaining;i++) pool.push(name);
-  }
-  return pool;
-}
+// ================= 테이블 생성 =================
+const currentTable = document.getElementById("currentTable");
+const expectLockTable = document.getElementById("expectLockTable");
+const targetTable = document.getElementById("targetOptionTable");
 
-/* 랜덤 시드 뽑기(풀에서 순서대로 채움) - shuffle simple */
-function shuffle(arr) {
-  for (let i = arr.length-1; i>0; i--) {
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-/* 초기 슬롯 채우기 */
-function fillInitial() {
-  // no locked excludes at init
-  const pool = shuffle(buildPool([]));
-  for (let i=0;i<5;i++){
-    slots[i].value = pool.length ? pool.shift() : "";
-    slots[i].locked = false;
-  }
-  renderSlots();
-}
-
-/* render slots table */
-function renderSlots(){
-  const tbody = document.getElementById("slotsTbody");
-  tbody.innerHTML = "";
-  for (let i=0;i<5;i++){
-    const tr = document.createElement("tr");
-    const tdIndex = document.createElement("td"); tdIndex.innerText = `${i+1}번`;
-    const tdValue = document.createElement("td"); 
-    tdValue.innerText = slots[i].value || "-";
-    if (slots[i].locked) {
-      tdValue.style.fontWeight = "700";
-      tdValue.style.color = "#ffd7d7";
-    } else {
-      tdValue.style.fontWeight = "400";
-      tdValue.style.color = "";
-    }
-
-    const tdLock = document.createElement("td");
-    const btn = document.createElement("button");
-    btn.className = "lock-btn";
-    btn.innerText = slots[i].locked ? "잠금 해제" : "잠금";
-    if (slots[i].locked) btn.classList.add("locked");
-    btn.onclick = () => {
-      // toggle persistent lock (user asked lock persists until unlock)
-      // but enforce max 2 locks
-      const currentLockCount = slots.filter(s=>s.locked).length;
-      if (!slots[i].locked && currentLockCount >= 2) {
-        alert("최대 2개까지만 잠글 수 있습니다.");
-        return;
-      }
-      slots[i].locked = !slots[i].locked;
-      renderSlots();
-    };
-    tdLock.appendChild(btn);
-
-    tr.appendChild(tdIndex);
-    tr.appendChild(tdValue);
-    tr.appendChild(tdLock);
-    tbody.appendChild(tr);
-  }
-}
-
-/* 리롤: 비잠금 슬롯을 새로 뽑음(풀에서 순서대로 채움) */
-function rerollUnlocked() {
-  // collect locked values to remove from pool counts
-  const lockedValues = slots.filter(s=>s.locked).map(s=>s.value).filter(Boolean);
-  let pool = shuffle(buildPool(lockedValues));
-  for (let i=0;i<5;i++){
-    if (slots[i].locked) continue;
-    slots[i].value = pool.length ? pool.shift() : "";
-  }
-  renderSlots();
-}
-
-/* 완전 초기화 */
-function resetAll() {
-  for (let i=0;i<5;i++){ slots[i].value = ""; slots[i].locked=false; }
-  fillInitial();
-}
-
-/* 모든 잠금 해제 */
-function unlockAll() {
-  for (let i=0;i<5;i++) slots[i].locked = false;
-  renderSlots();
-}
-
-/* 랜덤 슬롯 하나 잠금 (유틸) */
-function lockRandom() {
-  const unlockedIdx = slots.map((s,i)=>s.locked?null:i).filter(x=>x!==null);
-  if (unlockedIdx.length === 0) return;
-  const idx = unlockedIdx[Math.floor(Math.random()*unlockedIdx.length)];
-  const currentLockCount = slots.filter(s=>s.locked).length;
-  if (currentLockCount >= 2) { alert("이미 최대 잠금입니다."); return; }
-  slots[idx].locked = true;
-  renderSlots();
-}
-
-/* 원하는 옵션 UI (5개 selects) */
-function renderDesiredUI() {
-  const cont = document.getElementById("desiredContainer");
-  cont.innerHTML = "";
-  for (let i=0;i<5;i++){
-    const sel = document.createElement("select");
-    sel.dataset.slot = i;
-    const emptyOpt = document.createElement("option"); emptyOpt.value=""; emptyOpt.innerText="(비어있음)"; sel.appendChild(emptyOpt);
-    OPTION_NAMES.forEach(name=>{
-      const o = document.createElement("option"); o.value=name; o.innerText=name; sel.appendChild(o);
-    });
-    cont.appendChild(sel);
-  }
-}
-
-/* 복사: 현재 슬롯값을 원하는 옵션으로 채움 */
-function fillDesiredWithCurrent() {
-  const selects = document.querySelectorAll("#desiredContainer select");
-  selects.forEach((sel, i)=> {
-    sel.value = slots[i].value || "";
+function createOptionSelect() {
+  const sel = document.createElement("select");
+  const empty = document.createElement("option");
+  empty.value = "";
+  empty.textContent = "- 선택 -";
+  sel.appendChild(empty);
+  optionPool.forEach(opt=>{
+    const o = document.createElement("option");
+    o.value = opt.name;
+    o.textContent = opt.name;
+    sel.appendChild(o);
   });
+  return sel;
 }
 
-/* 핵심: 단일 시도 성공확률 계산
-   - 조건: Locked slots must equal desired values (if desired specified). If mismatch => p=0.
-   - Build pool excluding locked values (counts decreased by locked occurrences).
-   - For each unlocked slot in index order, required desired value is desired[i]. If empty -> treat as "don't care"?
-     -> But user asked to "원하는 옵션 5개를 다 선택" so assume desired must be specified for all 5 when computing goal.
-   - We compute sequential probability: for each unlocked slot in index order,
-       p *= count(desiredVal) / N_remaining
-       decrement count and N_remaining accordingly.
-*/
-function computeSingleTrialProb(desiredArr) {
-  // check locked compatibility
-  for (let i=0;i<5;i++){
-    if (slots[i].locked) {
-      if (desiredArr[i] && slots[i].value !== desiredArr[i]) {
-        return 0; // locked slot doesn't match desired -> impossible
-      }
-    }
+// 현재 옵션 슬롯
+for(let i=1;i<=5;i++){
+  const tr = document.createElement("tr");
+  const tdSlot = document.createElement("td");
+  const tdOpt = document.createElement("td");
+  const tdLock = document.createElement("td");
+
+  tdSlot.textContent = i;
+
+  const sel = createOptionSelect();
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
+
+  tdOpt.appendChild(sel);
+  tdLock.appendChild(chk);
+
+  tr.appendChild(tdSlot);
+  tr.appendChild(tdOpt);
+  tr.appendChild(tdLock);
+
+  currentTable.appendChild(tr);
+}
+
+// 기대값용 잠금 슬롯
+for(let i=1;i<=5;i++){
+  const tr = document.createElement("tr");
+  const tdSlot = document.createElement("td");
+  const tdChk  = document.createElement("td");
+
+  tdSlot.textContent = i;
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
+  chk.className = "expect-lock";
+
+  tdChk.appendChild(chk);
+  tr.appendChild(tdSlot);
+  tr.appendChild(tdChk);
+
+  expectLockTable.appendChild(tr);
+}
+
+// 원하는 옵션 설정
+for(let i=1;i<=5;i++){
+  const tr = document.createElement("tr");
+  const tdSlot = document.createElement("td");
+  const tdOpt  = document.createElement("td");
+
+  tdSlot.textContent = i;
+  const sel = createOptionSelect();
+
+  tdOpt.appendChild(sel);
+
+  tr.appendChild(tdSlot);
+  tr.appendChild(tdOpt);
+  targetTable.appendChild(tr);
+}
+
+// ================= 기대값 계산 =================
+function calculateExpectation(){
+  const lockChecks = document.querySelectorAll(".expect-lock");
+  const targetSelects = targetTable.querySelectorAll("select");
+
+  let lockedSlots = [];
+  lockChecks.forEach((chk,idx)=>{
+    if(chk.checked) lockedSlots.push(idx);
+  });
+
+  if(lockedSlots.length>2){
+    document.getElementById("resultBox").innerText = "잠금 슬롯은 최대 2개까지만 가능합니다.";
+    return;
   }
 
-  // exclude counts for locked slots (their values already taken)
-  const lockedValues = slots.filter(s=>s.locked).map(s=>s.value).filter(Boolean);
+  const targetOptions = [];
+  targetSelects.forEach(sel=>{
+    targetOptions.push(sel.value);
+  });
 
-  const pool = buildPool(lockedValues); // array of remaining possible items
-  // build counts
-  const counts = {};
-  pool.forEach(x => counts[x] = (counts[x] || 0) + 1);
-  let N = pool.length;
+  if(targetOptions.includes("")){
+    document.getElementById("resultBox").innerText = "원하는 옵션 5개를 모두 선택하세요.";
+    return;
+  }
 
-  // Now sequentially for each slot index that is not locked:
+  // 슬롯 고정 무시 – 기대값 전용 잠금 조건만 고려
+  let effectiveSlots = 5 - lockedSlots.length;
+
+  let availablePoolCount = 0;
+  optionPool.forEach(opt => {
+    availablePoolCount += opt.max;
+  });
+
   let p = 1;
-  for (let i=0;i<5;i++){
-    if (slots[i].locked) continue; // already matched
-    const desired = desiredArr[i];
-    if (!desired) {
-      // if user left desired blank, interpret as "don't care" => any item is acceptable.
-      // For "all desired match", we'd have to allow any item at that slot. But the user requested
-      // they will enter 5 desired options when calculating; we can treat blank as impossible to compute.
-      // We'll return NaN sentinel to indicate invalid input.
-      return NaN;
+
+  for(let i=0;i<5;i++){
+    let remainPool = availablePoolCount - i;
+
+    if(lockedSlots.includes(i)){
+      continue;
     }
-    const avail = counts[desired] || 0;
-    if (avail <= 0) return 0;
-    p *= avail / N;
-    // consume one from counts and N
-    counts[desired] = avail - 1;
-    N -= 1;
+
+    let countSame = targetOptions.filter(v=>v===targetOptions[i]).length;
+    let allowed = optionPool.find(o=>o.name===targetOptions[i])?.max || 0;
+
+    if(countSame > allowed){
+      document.getElementById("resultBox").innerText =
+        "선택한 옵션이 게임 내 출현 제한을 초과합니다.";
+      return;
+    }
+
+    let slotProb = (allowed / remainPool);
+    p *= slotProb;
   }
-  return p;
-}
 
-/* 기대값 계산 및 UI 출력 */
-function computeExpectation() {
-  // gather desired array from selects
-  const selects = document.querySelectorAll("#desiredContainer select");
-  const desired = Array.from(selects).map(s => s.value);
-
-  // check all desired specified
-  if (desired.some(v => v === "")) {
-    alert("원하는 옵션 5개를 모두 선택해주세요 (비어있는 항목이 있습니다).");
+  if(p <= 0){
+    document.getElementById("resultBox").innerText = "확률 계산 불가 조건입니다.";
     return;
   }
 
-  // count locks
-  const lockCount = slots.filter(s=>s.locked).length;
+  let stoneCost = 1;
+  if(lockedSlots.length===1) stoneCost = 3;
+  if(lockedSlots.length===2) stoneCost = 5;
 
-  // single trial probability
-  const p = computeSingleTrialProb(desired);
-  if (isNaN(p)) {
-    alert("원하는 옵션을 비워두지 마세요.");
-    return;
-  }
+  let expectedTries = 1 / p;
+  let expectedStone = expectedTries * stoneCost;
 
-  const perTryStone = stonePerTry(lockCount);
-
-  const resultBox = document.getElementById("resultBox");
-  if (p === 0) {
-    resultBox.innerHTML = `<p><strong>결과:</strong> 현재 잠금 상태에서는 원하는 조건을 만족하는 것이 불가능합니다 (잠금된 슬롯과 원하는 옵션 불일치).</p>`;
-    return;
-  }
-
-  const expectedTrials = 1 / p;
-  const expectedStones = expectedTrials * perTryStone;
-
-  // 표시 (읽기 좋게 확률 % 및 큰 수 포맷)
-  function fmtPct(x) { return (x*100).toFixed(6) + "%"; }
-  function fmtNum(x) { 
-    if (!isFinite(x)) return "무한"; 
-    if (x >= 1e6) return Math.round(x).toLocaleString();
-    return Number(x.toFixed(2)).toLocaleString();
-  }
-
-  resultBox.innerHTML = `
-    <p><strong>잠금 수:</strong> ${lockCount}개</p>
-    <p><strong>단일 시도 성공 확률:</strong> ${fmtPct(p)}</p>
-    <p><strong>기대 시도 횟수 (평균):</strong> ${fmtNum(expectedTrials)}</p>
-    <p><strong>1회 스톤 소모량:</strong> ${perTryStone}개</p>
-    <p><strong>기대 옵션 변경 스톤 (평균):</strong> ${fmtNum(expectedStones)}개</p>
-    <hr>
-    <p style="color:#cfe3ff"><em>참고:</em> 이 계산은 '한 번의 리롤 시 모든 (비잠금 포함) 슬롯이 정확히 사용자가 지정한 슬롯별 옵션과 일치'할 확률을 구한 것입니다.</p>
+  document.getElementById("resultBox").innerHTML = `
+    총 확률: ${(p*100).toFixed(8)}%<br>
+    시도 기대 횟수: ${expectedTries.toFixed(2)} 회<br>
+    옵션변경 스톤 1회당 소모: ${stoneCost} 개<br>
+    <br>
+    👉 <b>기대 옵션변경 스톤 개수: ${Math.round(expectedStone)}</b> 개
   `;
 }
-
-/* 초기화 동작 */
-function init() {
-  renderDesiredUI();
-  initSelect(); // (not used here but kept from previous flows)
-  fillInitial();
-}
-
-/* initSelect kept for compatibility (not used here) */
-function initSelect(){
-  // placeholder if needed elsewhere
-}
-
-/* render desired UI helper */
-function renderDesiredUI() {
-  const cont = document.getElementById("desiredContainer");
-  cont.innerHTML = "";
-  for (let i=0;i<5;i++){
-    const sel = document.createElement("select");
-    sel.style.padding = "8px";
-    sel.style.borderRadius = "6px";
-    sel.style.background = "#0b1220";
-    sel.style.color = "#e6f0ff";
-    sel.style.border = "1px solid rgba(255,255,255,0.06)";
-    sel.dataset.slot = i;
-    const empty = document.createElement("option"); empty.value=""; empty.innerText=`원하는 옵션 ${i+1}`; sel.appendChild(empty);
-    OPTION_NAMES.forEach(name=>{
-      const o = document.createElement("option"); o.value = name; o.innerText = name; sel.appendChild(o);
-    });
-    cont.appendChild(sel);
-  }
-}
-
-/* copy current slots -> desired selects */
-function fillDesiredWithCurrent() {
-  const selects = document.querySelectorAll("#desiredContainer select");
-  selects.forEach((s, i)=> s.value = slots[i].value || "");
-}
-
-/* expose some functions to window for buttons used above */
-window.rerollUnlocked = rerollUnlocked;
-window.resetAll = resetAll;
-window.unlockAll = unlockAll;
-window.lockRandom = lockRandom;
-window.fillDesiredWithCurrent = fillDesiredWithCurrent;
-window.computeExpectation = computeExpectation;
-
-/* start */
-init();
 </script>
+
 </body>
 </html>
