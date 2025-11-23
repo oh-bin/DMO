@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>디지몬 마스터즈 장비 강화 기대값 계산기</title>
-  <style>
-    body { font-family: sans-serif; background:#f7f7f7; padding:20px; }
-    .container { max-width:900px; margin:auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
-    .grid { display:grid; grid-template-columns: 1fr; gap:16px; margin-bottom:20px; }
-    .item-card { border:1px solid #ddd; border-radius:12px; padding:10px; text-align:center; }
-    .item-card img { width:150px; height:150px; object-fit:contain; border:1px dashed #ccc; border-radius:8px; }
-    select { width:100%; box-sizing:border-box; padding:5px; }
-    .btn { margin-top:20px; padding:12px 20px; border:none; background:#2d7ff9; color:#fff; border-radius:10px; cursor:pointer; font-size:16px; }
-    .result { margin-top:20px; padding:15px; background:#f1f8ff; border-radius:10px; }
-    table { width:100%; border-collapse:collapse; margin-top:20px; }
-    th, td { border:1px solid #ddd; padding:8px; text-align:center; }
-    th { background:#f0f0f0; }
-  </style>
+<meta charset="UTF-8">
+<title>디지몬 마스터즈 장비 강화 기대값 계산기</title>
+<style>
+  body { font-family: sans-serif; background:#f7f7f7; padding:20px; }
+  .container { max-width:900px; margin:auto; background:#fff; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+  .grid { display:grid; grid-template-columns: 1fr; gap:16px; margin-bottom:20px; }
+  .item-card { border:1px solid #ddd; border-radius:12px; padding:10px; text-align:center; }
+  .item-card img { width:150px; height:150px; object-fit:contain; border:1px dashed #ccc; border-radius:8px; }
+  select { width:100%; box-sizing:border-box; padding:5px; }
+  .btn { margin-top:20px; padding:12px 20px; border:none; background:#2d7ff9; color:#fff; border-radius:10px; cursor:pointer; font-size:16px; }
+  .result { margin-top:20px; padding:15px; background:#f1f8ff; border-radius:10px; }
+  table { width:100%; border-collapse:collapse; margin-top:20px; }
+  th, td { border:1px solid #ddd; padding:8px; text-align:center; }
+  th { background:#f0f0f0; }
+</style>
 </head>
 <body>
 <div class="container">
@@ -75,9 +75,7 @@
         <th>파괴 확률</th>
       </tr>
     </thead>
-    <tbody>
-      <!-- JS로 채움 -->
-    </tbody>
+    <tbody></tbody>
   </table>
 </div>
 
@@ -91,43 +89,41 @@
     "신발": "IMG/shoes.png",
     "장갑": "IMG/gloves.png"
   };
-
   const equipSelect = document.getElementById("equipSelect");
   const equipImg = document.getElementById("equip-img");
-
   equipSelect.addEventListener("change", () => {
     equipImg.src = equipImages[equipSelect.value] || "";
   });
   equipImg.src = equipImages[equipSelect.value];
 
   // ===== 강화 확률 하드코딩 =====
-  const baseSuccess = [1.0,1.0,0.9,0.85,0.7,0.55,0.4,0.3,0.2,0.12,0.09,0.07,0.05,0.02];
-  const extraSuccess= [1.0,1.0,0.99,0.935,0.77,0.605,0.44,0.33,0.22,0.132,0.099,0.077,0.055,0.022];
-  const breakRates = [0,0,0.01,0.02,0.03,0.05,0.07,0.1,0.12,0.15,0.18,0.2,0.25,0.3];
+  const baseSuccess = [1.0,1.0,0.9,0.85,0.7,0.55,0.4,0.3,0.2,0.12,0.09,0.07,0.05,0.03,0.02];
+  const extraSuccess= [1.0,1.0,0.99,0.935,0.77,0.605,0.44,0.33,0.22,0.132,0.099,0.077,0.055,0.033,0.022];
+  const breakRates = [0,0,0,0,0.05,0.1,0.1,0.1,0.1,0.3,0.41,0.47,0.6,0.67,0.78];
 
-  // ===== 비용 하드코딩 (단위: Bit 기준) =====
+  // ===== 비용 하드코딩 (단위: Bit 기준, 예시) =====
   const costsBit = [
-    1_000_000_000,   // 1
-    1_200_000_000,
-    5_500_000_000,
-    8_000_000_000,
-    10_541_520_000,
-    12_000_000_000,
-    15_300_000_000,
-    18_000_000_000,
-    20_200_000_000,
-    30_784_610_000,
-    35_000_000_000,
-    40_770_000_000,
-    78_439_190_000,
-    90_000_000_000
+    1000000000, // 0->1
+    1200000000,
+    5500000000,
+    8000000000,
+    10541520000,
+    12000000000,
+    15300000000,
+    18000000000,
+    20200000000,
+    30784610000,
+    35000000000,
+    40770000000,
+    78439190000,
+    90000000000,
+    95000000000 // 14->15
   ];
 
   // ===== 단계 선택 =====
   const startSelect = document.getElementById('startLvl');
   const targetSelect = document.getElementById('targetLvl');
-
-  for (let i=1; i<=15; i++){
+  for (let i=0; i<=15; i++){
     const opt1 = document.createElement('option');
     opt1.value = i;
     opt1.text = i;
@@ -139,7 +135,7 @@
     targetSelect.add(opt2);
   }
 
-  // ===== 비용 단위 변환 함수 (1000Bit=1M, 1000M=1T) =====
+  // ===== 비용 단위 변환 함수 =====
   function formatCost(bit){
     let m = Math.floor(bit / 1000);
     let b = bit % 1000;
@@ -148,12 +144,12 @@
     return `${t ? t + 'T ' : ''}${m ? m + 'M ' : ''}${b ? b + 'Bit' : ''}`.trim();
   }
 
-  // ===== 강화 단계 설명 테이블 채우기 (1->2, 2->3 ...) =====
+  // ===== 강화 단계 설명 테이블 채우기 (0->1,1->2 ...) =====
   const tbody = document.querySelector("#infoTable tbody");
-  for(let i=0;i<14;i++){
+  for(let i=0;i<15;i++){
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${i+1} → ${i+2}</td>
+      <td>${i} → ${i+1}</td>
       <td>${(baseSuccess[i]*100).toFixed(1)}%</td>
       <td>${(extraSuccess[i]*100).toFixed(1)}%</td>
       <td>${(breakRates[i]*100).toFixed(1)}%</td>
@@ -173,10 +169,9 @@
     }
 
     let totalCostBit = 0;
-
     for(let i=start; i<target; i++){
-      const cost = costsBit[i-1];
-      const pSuccess = useExtra ? extraSuccess[i-1] : baseSuccess[i-1];
+      const cost = costsBit[i];
+      const pSuccess = useExtra ? extraSuccess[i] : baseSuccess[i];
       const expectedTries = 1 / pSuccess;
       totalCostBit += expectedTries * cost;
     }
