@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>바이탈 브레스 디지바이스 V 옵션 계산기</title>
+  <title>바이탈 브레스 디지바이스 V 계산기</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -10,11 +10,7 @@
       color: white;
       padding: 20px;
     }
-
-    h1 {
-      color: #7ddcff;
-    }
-
+    h1 { color: #7ddcff; }
     button {
       padding: 10px 16px;
       font-size: 15px;
@@ -23,43 +19,26 @@
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      margin: 5px 0;
+      margin: 6px 0;
     }
-
-    select, input {
+    select {
       padding: 6px;
       border-radius: 6px;
-      border: none;
-      margin: 4px;
+      margin: 4px 0;
     }
-
     table {
       width: 100%;
       border-collapse: collapse;
       background: #0f172a;
       margin-top: 15px;
     }
-
     th, td {
       border: 1px solid #1e293b;
       padding: 8px;
       text-align: center;
     }
-
-    th {
-      background: #1e293b;
-    }
-
-    .lock {
-      color: #facc15;
-      font-weight: bold;
-    }
-
-    .info {
-      margin-top: 20px;
-      color: #94a3b8;
-      font-size: 14px;
-    }
+    th { background: #1e293b; }
+    .info { margin-top: 20px; color: #94a3b8; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -71,8 +50,8 @@
 <table>
   <thead>
     <tr>
-      <th>옵션 칸</th>
-      <th>현재 옵션</th>
+      <th>슬롯</th>
+      <th>옵션</th>
       <th>잠금</th>
     </tr>
   </thead>
@@ -81,33 +60,26 @@
 
 <hr style="margin:20px 0;">
 
-<h3>원하는 옵션 선택</h3>
+<h3>원하는 옵션</h3>
 <select id="targetOption"></select>
 
-<div style="margin-top:10px;">
-  <button onclick="calculate()">확률 & 스톤 계산</button>
-</div>
+<br>
+<button onclick="calculate()">기대값 계산</button>
 
 <table>
   <thead>
-    <tr>
-      <th>항목</th>
-      <th>값</th>
-    </tr>
+    <tr><th>항목</th><th>값</th></tr>
   </thead>
   <tbody id="calcResult"></tbody>
 </table>
 
 <div class="info">
-  * 모든 옵션은 동일한 확률 (4.34%)<br>
-  * 동일 옵션은 제한 개수만큼만 등장 가능<br>
-  * 최대 2개까지 잠금 가능<br>
-  * 옵션 변경 스톤: 0개 잠금=1개 / 1개 잠금=3개 / 2개 잠금=5개
+  * 옵션은 동일 확률<br>
+  * 잠금 최대 2개 가능<br>
+  * 스톤 소모량: 0잠금=1 / 1잠금=3 / 2잠금=5
 </div>
 
 <script>
-const BASE_RATE = 4.34;
-
 const OPTION_LIMITS = {
   "공격력": 2, "방어력": 2, "최대체력": 2, "디지소울": 2,
   "스킬피해": 2, "크리티컬": 2, "치명피해": 2, "회피": 2, "적중도": 2,
@@ -116,9 +88,10 @@ const OPTION_LIMITS = {
 };
 
 const OPTION_LIST = Object.keys(OPTION_LIMITS);
+
 let currentOptions = ["", "", "", "", ""];
 
-function initTargetSelect() {
+function initSelect() {
   const sel = document.getElementById("targetOption");
   sel.innerHTML = "";
   OPTION_LIST.forEach(opt => {
@@ -129,19 +102,14 @@ function initTargetSelect() {
   });
 }
 
-function buildPool(exclude = []) {
+function buildPool(exclude) {
   const pool = [];
-  const countMap = {};
-  exclude.forEach(e => {
-    countMap[e] = (countMap[e] || 0) + 1;
-  });
+  const used = {};
+  exclude.forEach(e => used[e] = (used[e] || 0) + 1);
 
   for (const [name, limit] of Object.entries(OPTION_LIMITS)) {
-    const used = countMap[name] || 0;
-    const remain = limit - used;
-    for (let i = 0; i < remain; i++) {
-      pool.push(name);
-    }
+    const remain = limit - (used[name] || 0);
+    for (let i = 0; i < remain; i++) pool.push(name);
   }
   return pool;
 }
@@ -151,55 +119,61 @@ function shuffle(arr) {
 }
 
 function rollOptions() {
-  const tbody = document.getElementById("optionTable");
-  tbody.innerHTML = "";
+  const checks = document.querySelectorAll("#optionTable input[type=checkbox]");
 
-  let pool = buildPool();
-  pool = shuffle(pool);
+  let lockedValues = [];
+  let lockedSlots = [];
+
+  checks.forEach((c, idx) => {
+    if (c.checked && currentOptions[idx]) {
+      lockedSlots.push(idx);
+      lockedValues.push(currentOptions[idx]);
+    }
+  });
+
+  let pool = shuffle(buildPool(lockedValues));
 
   for (let i = 0; i < 5; i++) {
-    if (!pool.length) break;
-    currentOptions[i] = pool.shift();
+    if (lockedSlots.includes(i)) continue;
+    currentOptions[i] = pool.length ? pool.shift() : "";
   }
 
-  renderOptionTable();
+  renderTable();
 }
 
-function renderOptionTable() {
+function renderTable() {
   const tbody = document.getElementById("optionTable");
   tbody.innerHTML = "";
 
   for (let i = 0; i < 5; i++) {
     const tr = document.createElement("tr");
 
-    const tdIdx = document.createElement("td");
-    tdIdx.innerText = `${i + 1}번`;
+    const td1 = document.createElement("td");
+    td1.innerText = `${i + 1}번`;
 
-    const tdOpt = document.createElement("td");
-    tdOpt.innerText = currentOptions[i] || "-";
+    const td2 = document.createElement("td");
+    td2.innerText = currentOptions[i] || "-";
 
-    const tdLock = document.createElement("td");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.dataset.idx = i;
+    const td3 = document.createElement("td");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.onchange = lockLimiter;
+    td3.appendChild(cb);
 
-    checkbox.onchange = enforceMaxLock;
-    tdLock.appendChild(checkbox);
-
-    tr.appendChild(tdIdx);
-    tr.appendChild(tdOpt);
-    tr.appendChild(tdLock);
+    tr.appendChild(td1);
+    tr.appendChild(td2);
+    tr.appendChild(td3);
 
     tbody.appendChild(tr);
   }
 }
 
-function enforceMaxLock() {
+function lockLimiter() {
   const checks = document.querySelectorAll("#optionTable input[type=checkbox]");
-  let checkedCount = 0;
-  checks.forEach(c => { if (c.checked) checkedCount++; });
+  let count = 0;
+  checks.forEach(c => c.checked && count++);
 
-  if (checkedCount > 2) {
+  if (count > 2) {
     this.checked = false;
     alert("최대 2개까지만 잠글 수 있습니다.");
   }
@@ -211,36 +185,49 @@ function calculate() {
 
   let locked = [];
   let lockCount = 0;
+  let lockedSlots = 0;
 
-  checks.forEach((c, idx) => {
-    if (c.checked && currentOptions[idx]) {
-      locked.push(currentOptions[idx]);
+  checks.forEach((c, i) => {
+    if (c.checked && currentOptions[i]) {
+      locked.push(currentOptions[i]);
       lockCount++;
+      lockedSlots++;
     }
   });
 
   const pool = buildPool(locked);
   const total = pool.length;
-  const targetCount = pool.filter(x => x === target).length;
 
-  const prob = total === 0 ? 0 : (targetCount / total * 100);
+  const targetCount = pool.filter(x => x === target).length;
+  const singleProb = total === 0 ? 0 : targetCount / total;
+
+  // 남은 슬롯 수
+  const remainSlots = 5 - lockCount;
+
+  // 전체 성공 확률 (모든 남은 슬롯이 전부 원하는 옵션일 확률)
+  const fullProb = Math.pow(singleProb, remainSlots);
 
   let stoneCost = 1;
   if (lockCount === 1) stoneCost = 3;
   if (lockCount === 2) stoneCost = 5;
 
-  const result = document.getElementById("calcResult");
-  result.innerHTML = `
-    <tr><td>잠금 개수</td><td>${lockCount}개</td></tr>
-    <tr><td>원하는 옵션</td><td>${target}</td></tr>
-    <tr><td>남은 선택지 수</td><td>${total}개</td></tr>
-    <tr><td>해당 옵션 개수</td><td>${targetCount}개</td></tr>
-    <tr><td>기대 확률</td><td>${prob.toFixed(2)}%</td></tr>
-    <tr><td>옵션 변경 스톤 소모</td><td>${stoneCost}개</td></tr>
+  const expectedTry = fullProb === 0 ? Infinity : 1 / fullProb;
+  const expectedStone = expectedTry * stoneCost;
+
+  const tbody = document.getElementById("calcResult");
+  tbody.innerHTML = `
+    <tr><td>잠금 수</td><td>${lockCount}개</td></tr>
+    <tr><td>총 남은 옵션 수</td><td>${total}개</td></tr>
+    <tr><td>원하는 옵션 풀 개수</td><td>${targetCount}개</td></tr>
+    <tr><td>한 줄 확률</td><td>${(singleProb * 100).toFixed(4)}%</td></tr>
+    <tr><td>전체 성공 확률 (5옵션 기준)</td><td>${(fullProb * 100).toFixed(6)}%</td></tr>
+    <tr><td>1회 스톤 소모</td><td>${stoneCost}개</td></tr>
+    <tr><td>기대 시도 횟수</td><td>${isFinite(expectedTry) ? expectedTry.toFixed(2) : '불가능'}</td></tr>
+    <tr><td>기대 옵션 변경 스톤</td><td>${isFinite(expectedStone) ? expectedStone.toFixed(2) : '불가능'}</td></tr>
   `;
 }
 
-initTargetSelect();
+initSelect();
 rollOptions();
 </script>
 
