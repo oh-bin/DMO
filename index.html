@@ -103,38 +103,31 @@
   const extraSuccess= [1.0,1.0,0.99,0.935,0.77,0.605,0.44,0.33,0.22,0.132,0.099,0.077,0.055,0.033,0.022];
   const breakRates = [0,0,0,0,0.05,0.1,0.1,0.1,0.1,0.3,0.41,0.47,0.6,0.67,0.78];
 
-  // ===== 비용 하드코딩 (Bit 단위 예시) =====
+  // ===== 비용 Bit 단위 하드코딩 (T=1,000,000 Bit, M=1,000 Bit) =====
   const costsBit = [
-    1000000000, // 0->1
-    1200000000,
-    5500000000,
-    8000000000,
-    10541520000,
-    12000000000,
-    15300000000,
-    18000000000,
-    20200000000,
-    30784610000,
-    35000000000,
-    40770000000,
-    78439190000,
-    90000000000,
-    95000000000 // 14->15
+    5500000,    // 0->1 : 5T 500M 0Bit
+    1200000,
+    5500000,
+    8000000,
+    10541520,   // 4->5
+    10541520,   // 5->6 : 10T 541M 520Bit
+    15300000,
+    18000000,
+    20200000,
+    30784610,   // 9->10
+    30784610,   // 10->11 : 30T 784M 610Bit
+    40770000,
+    78439190,   // 12->13
+    90000000,
+    95000000    // 14->15
   ];
 
   // ===== 단계 선택 =====
   const startSelect = document.getElementById('startLvl');
   const targetSelect = document.getElementById('targetLvl');
-  for (let i=0; i<=15; i++){
-    const opt1 = document.createElement('option');
-    opt1.value = i;
-    opt1.text = i;
-    startSelect.add(opt1);
-
-    const opt2 = document.createElement('option');
-    opt2.value = i;
-    opt2.text = i;
-    targetSelect.add(opt2);
+  for (let i=0;i<=15;i++){
+    const opt1 = document.createElement('option'); opt1.value=i; opt1.text=i; startSelect.add(opt1);
+    const opt2 = document.createElement('option'); opt2.value=i; opt2.text=i; targetSelect.add(opt2);
   }
 
   // ===== 비용 단위 변환 함수 =====
@@ -146,7 +139,7 @@
     return `${t ? t + 'T ' : ''}${m ? m + 'M ' : ''}${b ? b + 'Bit' : ''}`.trim();
   }
 
-  // ===== 강화 단계 설명 테이블 채우기 =====
+  // ===== 강화 단계 설명 테이블 =====
   const tbody = document.querySelector("#infoTable tbody");
   for(let i=0;i<15;i++){
     const failBase = (1 - baseSuccess[i] - breakRates[i])*100;
@@ -175,7 +168,7 @@
     }
 
     let totalCostBit = 0;
-    for(let i=start; i<target; i++){
+    for(let i=start;i<target;i++){
       const cost = costsBit[i];
       const pSuccess = useExtra ? extraSuccess[i] : baseSuccess[i];
       const expectedTries = 1 / pSuccess;
